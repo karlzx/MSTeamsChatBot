@@ -1,6 +1,6 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-from .dialog_bot import DialogBot
+from .echo_bot import EchoBot
 
-__all__ = ["DialogBot"]
+__all__ = ["EchoBot"]

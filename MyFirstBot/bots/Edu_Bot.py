@@ -4,12 +4,19 @@
 import random
 import json
 import torch
+from . import quiz
 from model import NeuralNet
 from nltk_utils import bag_of_words, tokenize
 
 from botbuilder.core import ActivityHandler, MessageFactory, TurnContext
 from botbuilder.schema import ChannelAccount
 
+# quiz_prefix = 
+# student_number = "n9725342"
+
+# student_number = "n9725342"
+
+Quiz = quiz.Quiz()
 
 class EduBot(ActivityHandler):
     def __init__(self):
@@ -20,7 +27,7 @@ class EduBot(ActivityHandler):
 
         FILE = "data.pth"
 
-        data = torch.load(FILE)
+        data = torch.load(FILE,map_location='cpu')
 
         self.input_size = data["input_size"]
         self.hidden_size = data["hidden_size"]
@@ -36,7 +43,7 @@ class EduBot(ActivityHandler):
 
         self.bot_name = "Ed"
 
-        self.status = "start"
+        self.status = "greeting"
 
     async def on_members_added_activity(
         self, members_added: [ChannelAccount], turn_context: TurnContext
@@ -44,10 +51,12 @@ class EduBot(ActivityHandler):
         for member in members_added:
             if member.id != turn_context.activity.recipient.id:
                 await turn_context.send_activity("Hi I'm Ed the Educational Bot! type 'quit' to exit")
+    
 
     async def on_message_activity(self, turn_context: TurnContext):
         sentence = turn_context.activity.text
-
+        
+        # Acquire Response
         sentence = tokenize(sentence)
         X = bag_of_words(sentence, self.all_words)
         X = X.reshape(1,X.shape[0])
@@ -65,40 +74,64 @@ class EduBot(ActivityHandler):
 
         print(f"User said {sentence}. gathered: intent {tag} with probability {prob.item()}")
 
-        if self.status == "start":
+        if self.status == "greeting":
             if prob.item() > acceptance_probability:
-                for intent in self.intents["intents"]:
-                    if tag == intent["tag"]:
-                        response = f"{random.choice(intent['responses'])}" 
-                    if tag == "quiz":
-                        self.status = "quizquestioned"
-            else:
-                    response = f"I do not understand...."
-        
-        elif self.status == "quizquestioned":
-            if prob.item() > acceptance_probability:
-                if tag == "yes":
-                    response = f"Starting the quiz... "
-                    self.status = "quiz"
+                if tag == "quiz":
+                    self.status = "quiz_greeting"
+                    response = Quiz.get_quiz_data("EGB242_2021_1_","n9725342")
+                
+                elif tag == "quizdetails":
+                    print("getting quiz")
+                    response = Quiz.get_update_data("EGB242_2021_1_","n9725342")
 
                 else:
-                    response = f"No worries! What would you like to do?"
-                    self.status == "start"
-
+                    for intent in self.intents["intents"]:
+                        if tag == intent["tag"]:
+                            response = f"{random.choice(intent['responses'])}" 
             else:
-                    response = f"I do not understand...."
+                response = f"I do not understand...."
         
-        elif self.status == "quiz":
-            response = f"You are now in quiz mode"
-
+        if self.status == "quiz_greeting":
             if prob.item() > acceptance_probability:
                 if tag == "quit":
-                    response = f"Taking you back"
-                    self.status = "start"
+                    self.status = "greeting"
+                    await turn_context.send_activity("Goodbye!  \n"+ Quiz.get_update_data("EGB242_2021_1_","n9725342"))
+                    response = f"What would you like to do?"
+            else:
+                response = f"I do not understand...."
+
+
+                        
+        
+        # elif self.status == "quizquestioned":
+        #     if prob.item() > acceptance_probability:
+        #         if tag == "yes":
+        #             response = f"Starting the quiz... "
+        #             self.status = "quiz"
+                    
+        #             await turn_context.send_activity(
+        #                 "Welcome to the Proactive Bot sample.  Navigate to "
+        #                 "http://localhost:3978/api/notify to proactively message everyone "
+        #                 "who has previously messaged this bot."
+        #             )
+
+        #         else:
+        #             response = f"No worries! What would you like to do?"
+        #             self.status == "start"
+
+        #     else:
+        #             response = f"I do not understand...."
+        
+        # elif self.status == "quiz":
+        #     response = f"You are now in quiz mode"
+
+        #     if prob.item() > acceptance_probability:
+        #         if tag == "quit":
+        #             response = f"Taking you back"
+        #             self.status = "start"
                 
 
              
-
-        return await turn_context.send_activity(
-            MessageFactory.text(f"{response}")
-        )
+                
+        return await turn_context.send_activity(MessageFactory.text(f"{response}"))
+    

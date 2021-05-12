@@ -16,7 +16,9 @@ from botbuilder.schema import ChannelAccount
 
 # student_number = "n9725342"
 
-Quiz = quiz.Quiz()
+# Quiz = quiz.Quiz()
+
+Student = quiz.Student("n9725342","EGB242_2021_1_")
 
 class EduBot(ActivityHandler):
     def __init__(self):
@@ -78,11 +80,11 @@ class EduBot(ActivityHandler):
             if prob.item() > acceptance_probability:
                 if tag == "quiz":
                     self.status = "quiz_greeting"
-                    response = Quiz.get_quiz_data("EGB242_2021_1_","n9725342")
+                    response = Student.get_quiz_info()
                 
                 elif tag == "quizdetails":
                     print("getting quiz")
-                    response = Quiz.get_update_data("EGB242_2021_1_","n9725342")
+                    response =  Student.get_update_data()
 
                 else:
                     for intent in self.intents["intents"]:
@@ -91,12 +93,15 @@ class EduBot(ActivityHandler):
             else:
                 response = f"I do not understand...."
         
-        if self.status == "quiz_greeting":
+        elif self.status == "quiz_greeting":
             if prob.item() > acceptance_probability:
                 if tag == "quit":
                     self.status = "greeting"
-                    await turn_context.send_activity("Goodbye!  \n"+ Quiz.get_update_data("EGB242_2021_1_","n9725342"))
+                    await turn_context.send_activity("Goodbye!  \n"+ Student.get_update_data())
                     response = f"What would you like to do?"
+                else:
+                    response = f"Not supported. Please pick a quiz or type 'quit' to return to home."
+
             else:
                 response = f"I do not understand...."
 

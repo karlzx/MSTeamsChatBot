@@ -1,2 +1,6 @@
-﻿Quiz,Questions,DueDate
-EGB242_2021_1_Set1,5,2/02/2021
+﻿Question,Image,A ,B,C,D,Points,Correct Answer,Justification
+Test Q1 -CA,N,Op A,Op B,Op C,Op D,10,A,NA
+Test Q2 - CB,N,Op A,Op B,Op C,Op D,10,B,NA
+Test Q3 - CC,N,Op A,Op B,Op C,Op D,5,C,NA
+Test Q4 - CD,N,Op A,Op B,Op C,Op D,5,D,NA
+Test Q5- CA,N,Op A,Op B,Op C,Op D,10,A,NA

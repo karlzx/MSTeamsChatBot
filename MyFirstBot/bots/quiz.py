@@ -1,46 +1,94 @@
 import csv
 
 class Student():
-    def __init__(self, studentnumber = "undefined",quizprefix = "undefined"):
-        self.studentnumber = studentnumber
-        self.nd_array = []
-        self.quizprefix = quizprefix
-        self.Quiz = self.Quiz()
+    def __init__(self, studentNumber = "undefined",quizPrefix = "undefined"):
+        self.studentNumber = studentNumber
+        self.chatStatus = "greeting"
+        self.notDoneArray = [] #table of quizzes not done, columns: [quiz name, quiz due date, remaining questions, total questions]
+        self.quizPrefix = quizPrefix
+        self.QuizRead = self.QuizRead()
+        self.QuestionSet = self.QuestionSet()
 
-    def read_data(self):
-        self.nd_array = self.Quiz.update_data(self.quizprefix,self.studentnumber)
+    def __read_data(self):
+        self.notDoneArray = self.QuizRead.update_student_summary(self.quizPrefix,self.studentNumber)
 
-    def get_quiz_info(self):
-        return "Welcome to quiz mode:  \n" +self.get_update_data() + "  \n" + " Select a quiz"
 
-    def get_update_data(self):
-        self.read_data()
-        nd_response = ""
-
-        for i in range(0,len(self.nd_array)):
-            nd_response += self.nd_array[i][0] +" "+ self.nd_array[i][1]  + ": Remaining - " +self.nd_array[i][2] +"  \n"
+    ## Method to gather remaining quiz performed data
+    def get_student_summary(self):
+        self.__read_data()
         
-        if len(nd_response) == 0:
-            nd_response = "You have completed all assigned quizzes"
+        ndResponse = ""
+
+        for i in range(0,len(self.notDoneArray)):
+            ndResponse += self.notDoneArray[i][0] +" "+ self.notDoneArray[i][1]  + ": Remaining - " +self.notDoneArray[i][2] +"  \n"
+        
+        if len(ndResponse) == 0:
+            ndResponse = "You have completed all assigned quizzes"
         else:
-            nd_response = "You have the following to finish:  \n" + nd_response
+            ndResponse = "You have the following to finish:  \n" + ndResponse
         
-        return nd_response 
+        return ndResponse 
     
+    def get_student_quiz(self, quizNumber):
+       
+        if (quizNumber > len(self.notDoneArray)) or (quizNumber <= 0):
+            return -1
+        else:
+            setName =self.notDoneArray[quizNumber-1][0]
+            currentQ = int(self.notDoneArray[quizNumber-1][3])-int(self.notDoneArray[quizNumber-1][2])
+            self.QuestionSet.open_quiz_set(setName,currentQ)
+            return setName
+
+    def get_student_question(self):
+        return self.QuestionSet.get_latest_question()
+
+
+    def is_chat_status(self,chatStatus):
+        return self.chatStatus == chatStatus
+        
+
+    class QuestionSet():
+        def __init__(self):
+            self.questionSetName = ""
+            self.currInd = 0
+            # Array of question set info with format:
+            # [Question, Image path, A answer, B answer, C answer,d answer, Points, Correct Answer, Correct Justification]
+            self.QArray = [] 
+            self.currQuestion = ""
+            self.currQuestionAnswer = ""
+            self.currQuestionPicturePath = ""
+
+        def open_quiz_set(self,setName,currentQind):
+            self.questionSetName = setName
+            self.currInd = currentQind
+            with open('./Data_Quiz/'+ self.questionSetName +'.csv') as csv_qreader:
+                    for row in csv_qreader:
+                        x = row.split(',')
+                        # print(row)
+                        if x[6].isdecimal():
+                            # row[6] = int(row[6])
+                            print(x[6])
+                            self.QArray.append(x)
+            
+            print(self.QArray)
+
+        def get_latest_question(self):
+            # print(self.currInd)
+            print(self.QArray[0][1])
+            return self.QArray[self.currInd][0]
     
 
-    class Quiz():
+    class QuizRead():
         def __init__(self):
             self.student_qn = []    #array of names of quizzes assigned to students (in set) length N
             self.student_qd = []    #array of number of questions student has done per quiz length N
             self.quizzes_qn = []    #array of names of quizzes in set , length N
             self.quizzes_qnd = []   #array of number of questions per quiz, length N
-            self.nd_array = []      #table of quizzes not done, columns: [quiz name, quiz due date, remaining questions]
+            self.notDoneArray = []      #table of quizzes not done, columns: [quiz name, quiz due date, remaining questions, total questions]
             self.suffix = ".csv"
 
 
-        def update_data(self, quiz_prefix ,student_number):
-            self.__init__()
+        def update_student_summary(self, quiz_prefix ,student_number):
             with open('./Data_Quiz/QuizSummary.csv') as csv_file:
                 with open('./Data_Students/' + quiz_prefix + student_number + self.suffix) as csv_student:
                     csv_reader = csv.reader(csv_file, delimiter=',')
@@ -61,9 +109,10 @@ class Student():
                         qind = self.quizzes_qn.index(assigned)
                         remaining = self.quizzes_qnd[qind][0]-self.student_qd[stind] 
                         if remaining>0:
-                            self.nd_array.append([assigned,self.quizzes_qnd[qind][1],str(remaining)])
+                            self.notDoneArray.append([assigned,self.quizzes_qnd[qind][1],str(remaining), str(self.quizzes_qnd[qind][0])])
 
-            return self.nd_array
+
+            return self.notDoneArray
             
             
 

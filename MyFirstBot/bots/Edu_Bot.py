@@ -18,34 +18,12 @@ from botbuilder.schema import ChannelAccount
 
 # Quiz = quiz.Quiz()
 
-Student = quiz.Student("n9725342","EGB242_2021_1_")
 
 class EduBot(ActivityHandler):
     def __init__(self):
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-        with open('intents.json','r') as f:
-            self.intents = json.load(f)
-
-        FILE = "data.pth"
-
-        data = torch.load(FILE,map_location='cpu')
-
-        self.input_size = data["input_size"]
-        self.hidden_size = data["hidden_size"]
-        self.output_size = data["output_size"]
-        self.all_words = data["all_words"]
-        self.tags = data["tags"]
-        self.model_state = data["model_state"]
-
-
-        self.model = NeuralNet( self.input_size,  self.hidden_size,  self.output_size).to( self.device)
-        self.model.load_state_dict( self.model_state)
-        self.model.eval()
-
         self.bot_name = "Ed"
-
-        self.status = "greeting"
+        self.Student = quiz.Student("n9725342","EGB242_2021_1_")
+        self.MLmodel = self.MLmodel()
 
     async def on_members_added_activity(
         self, members_added: [ChannelAccount], turn_context: TurnContext
@@ -59,84 +37,100 @@ class EduBot(ActivityHandler):
         sentence = turn_context.activity.text
         
         # Acquire Response
-        sentence = tokenize(sentence)
-        X = bag_of_words(sentence, self.all_words)
-        X = X.reshape(1,X.shape[0])
-        X = torch.from_numpy(X).to(self.device)
-        output = self.model(X)
-        _,predicted = torch.max(output, dim=1)
+        self.MLmodel.update_prob(sentence)
 
-        tag = self.tags[predicted.item()]
+        print(f"Current state {self.Student.chatStatus}")
 
-        probs = torch.softmax(output, dim = 1)
-        prob = probs[0][predicted.item()]
-        acceptance_probability = 0.75
+        print(f"User said {sentence}. gathered: intent {self.MLmodel.tag} with probability {self.MLmodel.prob.item()}")
 
-        print(f"Current state {self.status}")
-
-        print(f"User said {sentence}. gathered: intent {tag} with probability {prob.item()}")
-
-        if self.status == "greeting":
-            if prob.item() > acceptance_probability:
-                if tag == "quiz":
-                    self.status = "quiz_greeting"
-                    response = Student.get_quiz_info()
+        if self.Student.is_chat_status("greeting"):
+            if self.MLmodel.prob.item() > self.MLmodel.acceptance_probability:
+                if self.MLmodel.tag == "quiz":
+                    self.Student.chatStatus = "quiz_greeting"
+                    response = "Welcome to quiz mode:  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz"
                 
-                elif tag == "quizdetails":
+                elif self.MLmodel.tag == "quizdetails":
                     print("getting quiz")
-                    response =  Student.get_update_data()
+                    response =  self.Student.get_student_summary()
 
                 else:
-                    for intent in self.intents["intents"]:
-                        if tag == intent["tag"]:
+                    for intent in self.MLmodel.intents["intents"]:
+                        if self.MLmodel.tag == intent["tag"]:
                             response = f"{random.choice(intent['responses'])}" 
             else:
                 response = f"I do not understand...."
         
-        elif self.status == "quiz_greeting":
-            if prob.item() > acceptance_probability:
-                if tag == "quit":
-                    self.status = "greeting"
-                    await turn_context.send_activity("Goodbye!  \n"+ Student.get_update_data())
+        elif self.Student.is_chat_status("quiz_greeting"):
+            if self.MLmodel.prob.item() > self.MLmodel.acceptance_probability:
+                if self.MLmodel.tag == "quit":
+                    self.Student.chatStatus = "greeting"
+                    await turn_context.send_activity("Goodbye!  \n"+ self.Student.get_student_summary())
                     response = f"What would you like to do?"
                 else:
                     response = f"Not supported. Please pick a quiz or type 'quit' to return to home."
+            
+            elif sentence.isnumeric():
+                quizName = self.Student.get_student_quiz(int(sentence))
+
+                if quizName == -1:
+                    response = f"That is not a valid response, pick again"
+                else:
+                    # self.Student.get_student_question()
+                    await turn_context.send_activity(f"You Requested To do Quiz {quizName}")
+                    response = f"Your Question is: {self.Student.get_student_question()}" 
+                    self.Student.chatStatus = "quiz_greeting" #CHANGE THIS TO quizQuestioning WHEN WORKING
 
             else:
                 response = f"I do not understand...."
 
 
+
+        elif  self.Student.is_chat_status("QuizQuestioning"):
+            response = "QuizQuestioning"
+
+                
+        return await turn_context.send_activity(MessageFactory.text(f"{response}"))
                         
         
-        # elif self.status == "quizquestioned":
-        #     if prob.item() > acceptance_probability:
-        #         if tag == "yes":
-        #             response = f"Starting the quiz... "
-        #             self.status = "quiz"
-                    
-        #             await turn_context.send_activity(
-        #                 "Welcome to the Proactive Bot sample.  Navigate to "
-        #                 "http://localhost:3978/api/notify to proactively message everyone "
-        #                 "who has previously messaged this bot."
-        #             )
+    class MLmodel():
+        def __init__(self):
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        #         else:
-        #             response = f"No worries! What would you like to do?"
-        #             self.status == "start"
+            with open('intents.json','r') as f:
+                self.intents = json.load(f)
 
-        #     else:
-        #             response = f"I do not understand...."
-        
-        # elif self.status == "quiz":
-        #     response = f"You are now in quiz mode"
+            FILE = "data.pth"
 
-        #     if prob.item() > acceptance_probability:
-        #         if tag == "quit":
-        #             response = f"Taking you back"
-        #             self.status = "start"
+            data = torch.load(FILE,map_location='cpu')
+
+            self.input_size = data["input_size"]
+            self.hidden_size = data["hidden_size"]
+            self.output_size = data["output_size"]
+            self.all_words = data["all_words"]
+            self.tags = data["tags"]
+            self.model_state = data["model_state"]
+
+
+            self.model = NeuralNet( self.input_size,  self.hidden_size,  self.output_size).to( self.device)
+            self.model.load_state_dict( self.model_state)
+            self.model.eval()
+
+        def update_prob(self,sentence):
+            self.tokenizedSentence = tokenize(sentence)
+            X = bag_of_words(self.tokenizedSentence, self.all_words)
+            X = X.reshape(1,X.shape[0])
+            X = torch.from_numpy(X).to(self.device)
+            output = self.model(X)
+            _,predicted = torch.max(output, dim=1)
+
+            self.tag = self.tags[predicted.item()]
+
+            probs = torch.softmax(output, dim = 1)
+            self.prob = probs[0][predicted.item()]
+            self.acceptance_probability = 0.75
+
+
                 
 
              
-                
-        return await turn_context.send_activity(MessageFactory.text(f"{response}"))
     

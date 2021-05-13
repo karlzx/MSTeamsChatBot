@@ -77,8 +77,8 @@ class EduBot(ActivityHandler):
                 else:
                     # self.Student.get_student_question()
                     await turn_context.send_activity(f"You Requested To do Quiz {quizName}")
-                    response = f"Your Question is: {self.Student.get_student_question()}" 
-                    self.Student.chatStatus = "quiz_greeting" #CHANGE THIS TO quizQuestioning WHEN WORKING
+                    response = self.Student.get_student_question()  + "  \n Please enter your option."
+                    self.Student.chatStatus = "QuizQuestioning" #CHANGE THIS TO quizQuestioning WHEN WORKING
 
             else:
                 response = f"I do not understand...."
@@ -86,7 +86,12 @@ class EduBot(ActivityHandler):
 
 
         elif  self.Student.is_chat_status("QuizQuestioning"):
-            response = "QuizQuestioning"
+            # send details when you get into quiz as an await.
+            if self.Student.check_correct_answer(sentence):
+                response = "Correct"
+            else:
+                response = "Wrong"
+            
 
                 
         return await turn_context.send_activity(MessageFactory.text(f"{response}"))

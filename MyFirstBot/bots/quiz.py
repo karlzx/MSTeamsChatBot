@@ -40,7 +40,10 @@ class Student():
             return setName
 
     def get_student_question(self):
-        return self.QuestionSet.get_latest_question()
+        return self.QuestionSet.get_question()
+
+    def check_correct_answer(self,sentence):
+        return self.QuestionSet.currQuestionAnswer == sentence
 
 
     def is_chat_status(self,chatStatus):
@@ -51,12 +54,16 @@ class Student():
         def __init__(self):
             self.questionSetName = ""
             self.currInd = 0
+            self.MCQLetterOptions = ['A','B','C','D','E','F','G']
+            self.MaxMCQOptions = 4
             # Array of question set info with format:
             # [Question, Image path, A answer, B answer, C answer,d answer, Points, Correct Answer, Correct Justification]
             self.QArray = [] 
+
             self.currQuestion = ""
             self.currQuestionAnswer = ""
             self.currQuestionPicturePath = ""
+            self.currQuestionOptions = ['N/A']*4
 
         def open_quiz_set(self,setName,currentQind):
             self.questionSetName = setName
@@ -67,15 +74,34 @@ class Student():
                         # print(row)
                         if x[6].isdecimal():
                             # row[6] = int(row[6])
-                            print(x[6])
+                            # print(x[6])
                             self.QArray.append(x)
-            
-            print(self.QArray)
 
-        def get_latest_question(self):
+
+            self.update_Question()
+
+            print(self.QArray)
+        
+        def update_Question(self):
+            i = self.currInd
+            
+            self.currQuestion = self.QArray[i][0]
+            self.currQuestionPicturePath = self.QArray[i][1]
+            self.currQuestionAnswer = self.QArray[i][7]
+            self.currQuestionPoints = self.QArray[i][6]
+            for j in range(0,self.MaxMCQOptions):
+                self.currQuestionOptions[j] = self.QArray[i][2+j]
+            # for j in range(0,len(self.QArray[i])):
+                # print(self.QArray[i][j])
+                # self.QArray[i]
+                # self.currQuestionOptions[i] = self.QArray[i][2+j]
+
+        def get_question(self):
             # print(self.currInd)
-            print(self.QArray[0][1])
-            return self.QArray[self.currInd][0]
+            response = f"Question {self.currInd + 1}:  \n" + self.currQuestion + "  \n"
+            for i in range(0,self.MaxMCQOptions):
+                response += self.MCQLetterOptions[i] + ": " + self.currQuestionOptions[i] + "  \n"
+            return response 
     
 
     class QuizRead():
@@ -89,6 +115,7 @@ class Student():
 
 
         def update_student_summary(self, quiz_prefix ,student_number):
+            self.__init__()
             with open('./Data_Quiz/QuizSummary.csv') as csv_file:
                 with open('./Data_Students/' + quiz_prefix + student_number + self.suffix) as csv_student:
                     csv_reader = csv.reader(csv_file, delimiter=',')

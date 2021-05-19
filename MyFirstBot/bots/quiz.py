@@ -42,6 +42,13 @@ class Student():
     def get_student_question(self):
         return self.QuestionSet.get_question()
 
+    def is_valid_quiz_response(self,sentence):
+        return sentence in self.QuestionSet.MCQLetterOptions
+
+    def is_valid_justification_response(self,sentence):
+        #TODO GREATER RESPONSE
+        return len(sentence)>0
+
     def check_correct_answer(self,sentence):
         return self.QuestionSet.currQuestionAnswer == sentence
 
@@ -54,7 +61,7 @@ class Student():
         def __init__(self):
             self.questionSetName = ""
             self.currInd = 0
-            self.MCQLetterOptions = ['A','B','C','D','E','F','G']
+            self.MCQLetterOptions = ['A','B','C','D']
             self.MaxMCQOptions = 4
             # Array of question set info with format:
             # [Question, Image path, A answer, B answer, C answer,d answer, Points, Correct Answer, Correct Justification]

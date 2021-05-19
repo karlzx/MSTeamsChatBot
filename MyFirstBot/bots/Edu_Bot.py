@@ -87,11 +87,32 @@ class EduBot(ActivityHandler):
 
         elif  self.Student.is_chat_status("QuizQuestioning"):
             # send details when you get into quiz as an await.
-            if self.Student.check_correct_answer(sentence):
-                response = "Correct"
+            if self.Student.is_valid_quiz_response(sentence):
+                response = "Please Justify Your Answer"
+                self.Student.chatStatus = "QuizJustifying"
+            #  TODO: QUIT 
             else:
-                response = "Wrong"
+                response = "That is not a valid response, please enter try again."
+
+        elif self.Student.is_chat_status("QuizJustifying"):
+            if self.Student.is_valid_justification_response(sentence):
+                response = "Do you confirm? or would you like to change your answer?"
+                self.Student.chatStatus = "QuizConfirming"
+                
             
+            #  TODO: QUIT 
+            else:
+                response = "That is not a valid response, please enter try again."
+        
+        elif self.Student.is_chat_status("QuizConfirming"):
+            if self.Student.is_valid_justification_response(sentence):
+                response = "Do you confirm? or would you like to change your answer?"
+                self.Student.chatStatus = "Quiz Confirm"
+                
+            
+            #  TODO: QUIT 
+            else:
+                response = "That is not a valid response, please enter try again."
 
                 
         return await turn_context.send_activity(MessageFactory.text(f"{response}"))

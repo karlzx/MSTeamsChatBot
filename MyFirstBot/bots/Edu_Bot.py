@@ -4,6 +4,8 @@
 import random
 import json
 import torch
+import pickle
+import numpy as np
 from . import quiz
 from model import NeuralNet
 from nltk_utils import bag_of_words, tokenize
@@ -122,6 +124,7 @@ class EduBot(ActivityHandler):
         # Response should be a letter response to. passes onto justification if a valid response
         ##############################################
         elif self.Student.is_chat_status("QuizJustifying"):
+            self.justification = sentence
             if self.Student.is_valid_justification_response(sentence):
                 self.Student.chatStatus = "QuizConfirming"
                 response = "Do you confirm? or would you like to change your answer?"  + "  \n  \n currently:" + self.Student.chatStatus
@@ -136,7 +139,8 @@ class EduBot(ActivityHandler):
             if self.Student.is_valid_justification_response(sentence):
                 # POINTER CHECKING HAPPENS HERE
                 self.Student.chatStatus = "QuizFeedback"
-                response = "Here is your feedback do you want to do another quiz or finish?" + "  \n  \n currently:" + self.Student.chatStatus
+                feedback = predQ1Model(self.justification)  
+                response = feedback + "  \n" + "do you want to do another quiz or finish?" + "  \n  \n currently:" + self.Student.chatStatus
                 
             #  TODO: QUIT 
             else:
@@ -145,6 +149,7 @@ class EduBot(ActivityHandler):
 
         elif self.Student.is_chat_status("QuizFeedback"):
             if self.Student.is_valid_justification_response(sentence):
+
                 response = "Here is your other question:" + self.Student.get_student_question()  + "  \n Please enter your option." + "  \n  \n currently:" + self.Student.chatStatus 
                 self.Student.chatStatus = "QuizQuestioning" 
                 
@@ -157,7 +162,7 @@ class EduBot(ActivityHandler):
                 
         return await turn_context.send_activity(MessageFactory.text(f"{response}"))
                         
-        
+
     class MLmodel():
         def __init__(self):
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -194,6 +199,98 @@ class EduBot(ActivityHandler):
             probs = torch.softmax(output, dim = 1)
             self.prob = probs[0][predicted.item()]
             self.acceptance_probability = 0.75
+
+def predQ1Model(sentence):
+    ##EXPORTED MODEL
+    from sklearn.feature_extraction.text import CountVectorizer
+    with open('vocab.pickle', 'rb') as handle:
+        model = pickle.load(handle)
+
+    X_list = sentence
+
+    # Clean the data
+    from nltk.corpus import stopwords
+    from nltk.stem.wordnet import WordNetLemmatizer
+    import string
+    stop = set(stopwords.words('english'))
+    exclude = set(string.punctuation)
+    lemma = WordNetLemmatizer()
+
+    def clean(doc):
+        stop_free = " ".join([i for i in doc.lower().split() if i not in stop])
+        punc_free = ''.join(ch for ch in stop_free if ch not in exclude)
+        normalized = " ".join(lemma.lemmatize(word) for word in punc_free.split())
+        return normalized
+
+    X_list_clean = [clean(X_list).split()]
+    X_list_clean_comb = []
+    for i in range(len(X_list_clean)):
+        X_list_clean_comb.append(" ".join(X_list_clean[i]))
+    # Create Bag of Words Model
+    count_vect = CountVectorizer(stop_words='english')
+    X_data = count_vect.fit_transform(X_list_clean_comb)
+    X_data = X_data.todense()
+
+    X = X_data
+
+    # Create w2v Model
+    X_data_w2v = MeanEmbeddingVectorizer(model).transform(X_list_clean)
+    X_data_w2v = np.vstack(X_data_w2v)
+
+    X_w2v = X_data_w2v
+
+    # Load in the pretrained model
+    with open('q1model.pickle', 'rb') as handle:
+        qmodel = pickle.load(handle)
+
+    prediction = qmodel.predict(X_w2v)
+
+    response = ''
+
+    if prediction == 1:
+        response = 'Your Conceptual Understanding for Question 1 was predicted as correct. [Note: This feedback is currently in Beta]'
+    if prediction == 2:
+        response = 'Your Conceptual Understanding for Question 1 was predicted as partly correct. [Note: This feedback is currently in Beta]'
+    if prediction == 3:
+        response = 'Your Conceptual Understanding for Question 1 was predicted as incorrect. [Note: This feedback is currently in Beta]'
+
+    return response
+
+class MeanEmbeddingVectorizer(object):
+    def __init__(self, word2vec):
+        self.word2vec = word2vec
+        # if a text is empty we should return a vector of zeros
+        # with the same dimensionality as all the other vectors
+        self.dim = len(next(iter(self.word2vec.items())))
+
+    def fit(self, X, y):
+        return self
+
+    def transform(self, X):
+        return np.array([
+            np.mean([self.word2vec[w] for w in words if w in self.word2vec]
+                    or [np.zeros(self.dim)], axis=0)
+            for words in X
+        ])
+
+# if __name__ == "__main__":
+
+#     #Export vocab for each question before looking
+#     #exportQ1Vocab()
+
+#     #Create model for each question
+#     #createQ1Model()
+
+#     #Test some example setences prediction
+#     sentence1 = 'Frequency is the inverse of period' #Should be 1
+#     sentence2 = 'guess' #Should be 3
+#     sentence3 = 'Random words I am typing' #Should be 3
+#     sentence4 = 'The amplitude is higher' #Should be 3
+#     sentence5 = 'Option (a) has the greatest frequency, as the cycles oscillate the most.'  # Should be 3
+#     sentence6 = 'The signal frequency amplitude period is the highest in time.'
+#     sentence7 = 'The amplitude is the largest'
+    
+#     out1 = predQ1Model(sentence1)   
 
 
                 

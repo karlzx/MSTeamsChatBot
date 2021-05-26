@@ -43,6 +43,13 @@ class EduBot(ActivityHandler):
 
         print(f"User said {sentence}. gathered: intent {self.MLmodel.tag} with probability {self.MLmodel.prob.item()}")
 
+        ##############################################
+        # STATE : GREETING
+        ##############################################
+        # DESC :
+        # User can request for quiz, request for info
+        #
+        ##############################################
         if self.Student.is_chat_status("greeting"):
             if self.MLmodel.prob.item() > self.MLmodel.acceptance_probability:
                 if self.MLmodel.tag == "quiz":
@@ -59,7 +66,13 @@ class EduBot(ActivityHandler):
                             response = f"{random.choice(intent['responses'])}" 
             else:
                 response = f"I do not understand...."
-        
+
+        ##############################################
+        # STATE : QUIZ GREETING
+        ##############################################
+        # DESC :
+        # User is displayed what quizzes there are, and enter into a quiz
+        ##############################################
         elif self.Student.is_chat_status("quiz_greeting"):
             if self.MLmodel.prob.item() > self.MLmodel.acceptance_probability:
                 if self.MLmodel.tag == "quit":
@@ -73,46 +86,73 @@ class EduBot(ActivityHandler):
                 quizName = self.Student.get_student_quiz(int(sentence))
 
                 if quizName == -1:
-                    response = f"That is not a valid response, pick again"
-                else:
+                    response = f"That is not a valid response, pick again" + "  \n  \n currently:" + self.Student.chatStatus
+
+                else: 
                     # self.Student.get_student_question()
                     await turn_context.send_activity(f"You Requested To do Quiz {quizName}")
                     response = self.Student.get_student_question()  + "  \n Please enter your option."
                     self.Student.chatStatus = "QuizQuestioning" #CHANGE THIS TO quizQuestioning WHEN WORKING
 
             else:
-                response = f"I do not understand...."
+                response = f"I do not understand...." + "  \n  \n currently:" + self.Student.chatStatus
 
-
-
+        ##############################################
+        # STATE : QUIZ QUESTIONING
+        ##############################################
+        # DESC :
+        # User is given a question
+        # Response should be a letter response to. passes onto justification if a valid response
+        ##############################################
         elif  self.Student.is_chat_status("QuizQuestioning"):
             # send details when you get into quiz as an await.
-            if self.Student.is_valid_quiz_response(sentence):
-                response = "Please Justify Your Answer"
-                self.Student.chatStatus = "QuizJustifying"
+            if self.Student.is_valid_quiz_response(sentence): 
+                self.Student.chatStatus = "QuizJustifying" 
+                response = "Please Justify Your Answer" + "  \n  \n currently:" + self.Student.chatStatus
             #  TODO: QUIT 
             else:
-                response = "That is not a valid response, please enter try again."
+                response = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
 
+        
+        ##############################################
+        # STATE : QUIZ QUESTIONING
+        ##############################################
+        # DESC :
+        # User is given a question
+        # Response should be a letter response to. passes onto justification if a valid response
+        ##############################################
         elif self.Student.is_chat_status("QuizJustifying"):
             if self.Student.is_valid_justification_response(sentence):
-                response = "Do you confirm? or would you like to change your answer?"
                 self.Student.chatStatus = "QuizConfirming"
+                response = "Do you confirm? or would you like to change your answer?"  + "  \n  \n currently:" + self.Student.chatStatus
                 
             
             #  TODO: QUIT 
             else:
-                response = "That is not a valid response, please enter try again."
+                response = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
         
+
         elif self.Student.is_chat_status("QuizConfirming"):
             if self.Student.is_valid_justification_response(sentence):
-                response = "Do you confirm? or would you like to change your answer?"
-                self.Student.chatStatus = "Quiz Confirm"
+                # POINTER CHECKING HAPPENS HERE
+                self.Student.chatStatus = "QuizFeedback"
+                response = "Here is your feedback do you want to do another quiz or finish?" + "  \n  \n currently:" + self.Student.chatStatus
+                
+            #  TODO: QUIT 
+            else:
+                response = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
+
+
+        elif self.Student.is_chat_status("QuizFeedback"):
+            if self.Student.is_valid_justification_response(sentence):
+                response = "Here is your other question:" + self.Student.get_student_question()  + "  \n Please enter your option." + "  \n  \n currently:" + self.Student.chatStatus 
+                self.Student.chatStatus = "QuizQuestioning" 
                 
             
             #  TODO: QUIT 
             else:
-                response = "That is not a valid response, please enter try again."
+                response = "That is not a valid response, please enter try again."+ "  \n  \n currently:" + self.Student.chatStatus
+
 
                 
         return await turn_context.send_activity(MessageFactory.text(f"{response}"))

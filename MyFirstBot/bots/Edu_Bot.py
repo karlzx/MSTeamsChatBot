@@ -256,22 +256,37 @@ def predQ1Model(sentence):
 
     return response
 
-class MeanEmbeddingVectorizer(object):
+class Vectoriser(object):
     def __init__(self, word2vec):
         self.word2vec = word2vec
         # if a text is empty we should return a vector of zeros
         # with the same dimensionality as all the other vectors
-        self.dim = len(next(iter(self.word2vec.items())))
+        self.dim = 300  # This is the dimentions which the Google News Vector contains.
+
+
+    def transform(self, X):
+        X_ret = []
+        for words in X:
+            average = []
+            for w in words:
+                if w in self.word2vec:
+                    average.append(self.word2vec[w])
+            average = np.mean(average or [np.zeros(self.dim)] , axis=0)
+            norm2 = (np.linalg.norm(average, ord=2) + 1e-6)
+            average = average / norm2
+            #if np.mean(average) != 0:
+            #    average = average - np.mean(average)
+            #    average = average / np.std(average)
+            X_ret.append(average)
+
+        return X_ret
+
+class MeanEmbeddingVectorizer(Vectoriser):
 
     def fit(self, X, y):
         return self
 
-    def transform(self, X):
-        return np.array([
-            np.mean([self.word2vec[w] for w in words if w in self.word2vec]
-                    or [np.zeros(self.dim)], axis=0)
-            for words in X
-        ])
+
 
 # if __name__ == "__main__":
 

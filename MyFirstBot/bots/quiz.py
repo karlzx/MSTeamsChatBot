@@ -49,6 +49,15 @@ class Student():
         #TODO GREATER RESPONSE
         return len(sentence)>0
 
+    def is_valid_confirm_response(self,sentence):
+        
+        if sentence.lower() == "yes":
+            return 1
+        elif sentence.lower() == "no":
+            return 0
+        else:
+            return -1
+
     def check_correct_answer(self,sentence):
         return self.QuestionSet.currQuestionAnswer == sentence
 

@@ -9,9 +9,27 @@ import numpy as np
 from . import quiz
 from model import NeuralNet
 from nltk_utils import bag_of_words, tokenize
-
-from botbuilder.core import ActivityHandler, MessageFactory, TurnContext
+from botbuilder.core import ActivityHandler, MessageFactory, TurnContext,CardFactory
 from botbuilder.schema import ChannelAccount
+from botbuilder.schema import (
+    ActionTypes,
+    Attachment,
+    AnimationCard,
+    AudioCard,
+    HeroCard,
+    OAuthCard,
+    VideoCard,
+    ReceiptCard,
+    SigninCard,
+    ThumbnailCard,
+    MediaUrl,
+    CardAction,
+    CardImage,
+    ThumbnailUrl,
+    Fact,
+    ReceiptItem,
+    AttachmentLayoutTypes,
+)
 
 # quiz_prefix = 
 # student_number = "n9725342"
@@ -94,6 +112,7 @@ class EduBot(ActivityHandler):
                     # self.Student.get_student_question()
                     await turn_context.send_activity(f"You Requested To do Quiz {quizName}")
                     response = self.Student.get_student_question()  + "  \n Please enter your option."
+                    # await turn_context.send_activity(MessageFactory.list([]).attachments.append(create_hero_card()))
                     self.Student.chatStatus = "QuizQuestioning" #CHANGE THIS TO quizQuestioning WHEN WORKING
 
             else:
@@ -129,22 +148,25 @@ class EduBot(ActivityHandler):
                 self.Student.chatStatus = "QuizConfirming"
                 response = "Do you confirm? or would you like to change your answer?"  + "  \n  \n currently:" + self.Student.chatStatus
                 
-            
             #  TODO: QUIT 
             else:
                 response = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
         
 
         elif self.Student.is_chat_status("QuizConfirming"):
-            if self.Student.is_valid_justification_response(sentence):
-                # POINTER CHECKING HAPPENS HERE
+            if self.Student.is_valid_confirm_response(sentence) == -1:
+                response = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
+                
+            elif self.Student.is_valid_confirm_response(sentence):# POINTER CHECKING HAPPENS HERE
                 self.Student.chatStatus = "QuizFeedback"
                 feedback = predQ1Model(self.justification)  
                 response = feedback + "  \n" + "do you want to do another quiz or finish?" + "  \n  \n currently:" + self.Student.chatStatus
+                self.Student.chatStatus = "QuizFeedback"
                 
-            #  TODO: QUIT 
-            else:
-                response = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
+            else: 
+                response = self.Student.get_student_question()  + "  \n Please enter your option."
+                self.Student.chatStatus = "QuizQuestioning" #CHANGE THIS TO quizQuestioning WHEN WORKING
+
 
 
         elif self.Student.is_chat_status("QuizFeedback"):
@@ -157,7 +179,6 @@ class EduBot(ActivityHandler):
             #  TODO: QUIT 
             else:
                 response = "That is not a valid response, please enter try again."+ "  \n  \n currently:" + self.Student.chatStatus
-
 
                 
         return await turn_context.send_activity(MessageFactory.text(f"{response}"))
@@ -200,6 +221,31 @@ class EduBot(ActivityHandler):
             self.prob = probs[0][predicted.item()]
             self.acceptance_probability = 0.75
 
+def create_animation_card(self) -> Attachment:
+        card = AnimationCard(
+            media=[MediaUrl(url="http://i.giphy.com/Ki55RUbOV5njy.gif")],
+            title="Microsoft Bot Framework",
+            subtitle="Animation Card",
+        )
+        return CardFactory.animation_card(card)
+
+def create_hero_card() -> Attachment:
+    card = HeroCard(
+        title="",
+        images=[
+            CardImage(
+                url="https://sec.ch9.ms/ch9/7ff5/e07cfef0-aa3b-40bb-9baa-7c9ef8ff7ff5/buildreactionbotframework_960.jpg"
+            )
+        ],
+        # buttons=[
+        #     CardAction(
+        #         type=ActionTypes.open_url,
+        #         title="Get Started",
+        #         value="https://docs.microsoft.com/en-us/azure/bot-service/",
+        #     )
+        # ],
+    )
+    return CardFactory.hero_card(card)
 def predQ1Model(sentence):
     ##EXPORTED MODEL
     from sklearn.feature_extraction.text import CountVectorizer

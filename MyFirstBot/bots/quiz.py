@@ -64,7 +64,9 @@ class Student():
 
     def is_chat_status(self,chatStatus):
         return self.chatStatus == chatStatus
-        
+
+    def set_chat_status(self, newChatStatus):
+        self.chatStatus = newChatStatus    
 
     class QuestionSet():
         def __init__(self):

@@ -11,32 +11,22 @@ from model import NeuralNet
 from nltk_utils import bag_of_words, tokenize
 from botbuilder.core import ActivityHandler, MessageFactory, TurnContext,CardFactory
 from botbuilder.schema import ChannelAccount
+
+import os
+import urllib.parse
+import urllib.request
+import base64
+
 from botbuilder.schema import (
-    ActionTypes,
-    Attachment,
-    AnimationCard,
-    AudioCard,
+    ChannelAccount,
     HeroCard,
-    OAuthCard,
-    VideoCard,
-    ReceiptCard,
-    SigninCard,
-    ThumbnailCard,
-    MediaUrl,
     CardAction,
-    CardImage,
-    ThumbnailUrl,
-    Fact,
-    ReceiptItem,
-    AttachmentLayoutTypes,
+    ActivityTypes,
+    Attachment,
+    AttachmentData,
+    Activity,
+    ActionTypes,
 )
-
-# quiz_prefix = 
-# student_number = "n9725342"
-
-# student_number = "n9725342"
-
-# Quiz = quiz.Quiz()
 
 
 class EduBot(ActivityHandler):
@@ -229,23 +219,7 @@ def create_animation_card(self) -> Attachment:
         )
         return CardFactory.animation_card(card)
 
-def create_hero_card() -> Attachment:
-    card = HeroCard(
-        title="",
-        images=[
-            CardImage(
-                url="https://sec.ch9.ms/ch9/7ff5/e07cfef0-aa3b-40bb-9baa-7c9ef8ff7ff5/buildreactionbotframework_960.jpg"
-            )
-        ],
-        # buttons=[
-        #     CardAction(
-        #         type=ActionTypes.open_url,
-        #         title="Get Started",
-        #         value="https://docs.microsoft.com/en-us/azure/bot-service/",
-        #     )
-        # ],
-    )
-    return CardFactory.hero_card(card)
+
 def predQ1Model(sentence):
     ##EXPORTED MODEL
     from sklearn.feature_extraction.text import CountVectorizer

@@ -49,6 +49,14 @@ class Student():
         #TODO GREATER RESPONSE
         return len(sentence)>0
 
+    def is_valid_postfeedback_response(self,sentence):
+    #TODO GREATER RESPONSE
+        if sentence.lower() == "again":
+            return 1
+        elif sentence.lower() == "finish":
+            return 0
+        else:
+            return -1
     def is_valid_confirm_response(self,sentence):
         
         if sentence.lower() == "yes":

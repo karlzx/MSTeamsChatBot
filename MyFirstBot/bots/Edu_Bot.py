@@ -170,12 +170,18 @@ class EduBot(ActivityHandler):
         ##############################################
 
         elif self.Student.is_chat_status("QuizFeedback"):
-            if self.Student.is_valid_justification_response(sentence):
+            if self.Student.is_valid_postfeedback_response(sentence) == -1:
+                response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
+            
+            elif self.Student.is_valid_postfeedback_response(sentence) == 1:
 
-                response.text = "Here is your other question:" + self.Student.get_student_question()  + "  \n Please enter your option." + "  \n  \n currently:" + self.Student.chatStatus 
+                response.text = "Here is your next question:" + self.Student.get_student_question()  + "  \n Please enter your option." + "  \n  \n currently:" + self.Student.chatStatus 
                 self.Student.chatStatus = "QuizQuestioning" 
                 
-            
+            elif self.Student.is_valid_postfeedback_response(sentence) == 0:
+                self.Student.set_chat_status("quiz_greeting")
+
+                response.text = "Welcome back to quiz mode:  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz"
             #  TODO: QUIT 
             else:
                 response.text = "That is not a valid response, please enter try again."+ "  \n  \n currently:" + self.Student.chatStatus
@@ -268,7 +274,7 @@ class EduBot(ActivityHandler):
                         if self.tag == intent["tag"]:
                             return f"{random.choice(intent['responses'])}" 
 
-
+   
 def predQ1Model(sentence):
     ##EXPORTED MODEL
     from sklearn.feature_extraction.text import CountVectorizer

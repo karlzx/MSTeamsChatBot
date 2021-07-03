@@ -30,7 +30,7 @@ class Student():
         return ndResponse 
     
     def get_student_quiz(self, quizNumber):
-       
+        self.__read_data()
         if (quizNumber > len(self.notDoneArray)) or (quizNumber <= 0):
             return -1
         else:
@@ -43,11 +43,21 @@ class Student():
         return self.QuestionSet.get_question()
 
     def is_valid_quiz_response(self,sentence):
-        return sentence in self.QuestionSet.MCQLetterOptions
+        valid = sentence in self.QuestionSet.MCQLetterOptions
+        
+        if valid:
+            self.temp_MCQresponse = sentence
+        
+        return valid 
 
     def is_valid_justification_response(self,sentence):
         #TODO GREATER RESPONSE
-        return len(sentence)>0
+        valid = len(sentence)>0
+        
+        if valid:
+            self.temp_MCQJustifications = sentence
+        
+        return valid
 
     def is_valid_postfeedback_response(self,sentence):
     #TODO GREATER RESPONSE
@@ -57,6 +67,7 @@ class Student():
             return 0
         else:
             return -1
+
     def is_valid_confirm_response(self,sentence):
         
         if sentence.lower() == "yes":
@@ -86,15 +97,21 @@ class Student():
             # [Question, Image path, A answer, B answer, C answer,d answer, Points, Correct Answer, Correct Justification]
             self.QArray = [] 
 
+            self.currStudentJustification = ""
+            self.currStudentMCQResponse = ""
             self.currQuestion = ""
             self.currQuestionAnswer = ""
             self.currQuestionPicturePath = ""
             self.currQuestionOptions = ['N/A']*4
 
+        def update_student_response(self,mcqresponse,mcqjustification):
+            self.currStudentJustification = mcqresponse
+            self.currStudentMCQResponse = mcqjustification
+
         def open_quiz_set(self,setName,currentQind):
             self.questionSetName = setName
             self.currInd = currentQind
-            with open('./Data_Quiz/'+ self.questionSetName +'.csv') as csv_qreader:
+            with open('./Resources/Data_Quiz/'+ self.questionSetName +'.csv') as csv_qreader:
                     for row in csv_qreader:
                         x = row.split(',')
                         # print(row)
@@ -142,8 +159,8 @@ class Student():
 
         def update_student_summary(self, quiz_prefix ,student_number):
             self.__init__()
-            with open('./Data_Quiz/QuizSummary.csv') as csv_file:
-                with open('./Data_Students/' + quiz_prefix + student_number + self.suffix) as csv_student:
+            with open('./Resources/Data_Quiz/QuizSummary.csv') as csv_file:
+                with open('./Resources/Data_Students/' + quiz_prefix + student_number + self.suffix) as csv_student:
                     csv_reader = csv.reader(csv_file, delimiter=',')
                     csv_sreader = csv.reader(csv_student, delimiter=',')
 

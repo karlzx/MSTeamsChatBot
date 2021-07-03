@@ -32,7 +32,6 @@ from botbuilder.schema import (
 class EduBot(ActivityHandler):
     def __init__(self):
         self.bot_name = "Ed"
-        self.Student = quiz.Student("n9725342","EGB242_2021_1_")
         self.MLmodel = self.MLmodel()
 
     async def on_members_added_activity(
@@ -41,6 +40,7 @@ class EduBot(ActivityHandler):
         for member in members_added:
             if member.id != turn_context.activity.recipient.id:
                 await turn_context.send_activity("Hi I'm Ed the Educational Bot! type 'quit' to exit")
+                self.Student = quiz.Student("n9725342","EGB242_2021_1_")
                 
     
 
@@ -202,7 +202,7 @@ class EduBot(ActivityHandler):
         Please consult the channel documentation for specifics.
         :return: Attachment
         """
-        file_path = os.path.join(os.getcwd(), "Images/test-picture.png")
+        file_path = os.path.join(os.getcwd(), "./Resources/Images/test-picture.png")
         with open(file_path, "rb") as in_file:
             base64_image = base64.b64encode(in_file.read()).decode()
 
@@ -229,10 +229,10 @@ class EduBot(ActivityHandler):
         def __init__(self):
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-            with open('intents.json','r') as f:
+            with open('./Resources/intents.json','r') as f:
                 self.intents = json.load(f)
 
-            FILE = "data.pth"
+            FILE = "./Resources/data.pth"
 
             data = torch.load(FILE,map_location='cpu')
 
@@ -278,7 +278,7 @@ class EduBot(ActivityHandler):
 def predQ1Model(sentence):
     ##EXPORTED MODEL
     from sklearn.feature_extraction.text import CountVectorizer
-    with open('vocab.pickle', 'rb') as handle:
+    with open('./Resources/vocab.pickle', 'rb') as handle:
         model = pickle.load(handle)
 
     X_list = sentence
@@ -315,7 +315,7 @@ def predQ1Model(sentence):
     X_w2v = X_data_w2v
 
     # Load in the pretrained model
-    with open('q1model.pickle', 'rb') as handle:
+    with open('./Resources/q1model.pickle', 'rb') as handle:
         qmodel = pickle.load(handle)
 
     prediction = qmodel.predict(X_w2v)

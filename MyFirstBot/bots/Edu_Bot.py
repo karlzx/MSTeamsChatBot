@@ -4,8 +4,6 @@
 import random
 import json
 import torch
-import pickle
-import numpy as np
 from . import quiz
 from model import NeuralNet
 from nltk_utils import bag_of_words, tokenize
@@ -154,7 +152,7 @@ class EduBot(ActivityHandler):
                 response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
                 
             elif self.Student.is_valid_confirm_response(sentence):# POINTER CHECKING HAPPENS HERE
-                feedback = predQ1Model(self.justification)  
+                feedback = self.Student.get_feedback()
                 response.text = feedback + "  \n" + "do you want to do another quiz or finish?" + "  \n  \n currently:" + self.Student.chatStatus
                 self.Student.set_chat_status("QuizFeedback")
                 
@@ -275,91 +273,6 @@ class EduBot(ActivityHandler):
                             return f"{random.choice(intent['responses'])}" 
 
    
-def predQ1Model(sentence):
-    ##EXPORTED MODEL
-    from sklearn.feature_extraction.text import CountVectorizer
-    with open('./Resources/vocab.pickle', 'rb') as handle:
-        model = pickle.load(handle)
-
-    X_list = sentence
-
-    # Clean the data
-    from nltk.corpus import stopwords
-    from nltk.stem.wordnet import WordNetLemmatizer
-    import string
-    stop = set(stopwords.words('english'))
-    exclude = set(string.punctuation)
-    lemma = WordNetLemmatizer()
-
-    def clean(doc):
-        stop_free = " ".join([i for i in doc.lower().split() if i not in stop])
-        punc_free = ''.join(ch for ch in stop_free if ch not in exclude)
-        normalized = " ".join(lemma.lemmatize(word) for word in punc_free.split())
-        return normalized
-
-    X_list_clean = [clean(X_list).split()]
-    X_list_clean_comb = []
-    for i in range(len(X_list_clean)):
-        X_list_clean_comb.append(" ".join(X_list_clean[i]))
-    # Create Bag of Words Model
-    count_vect = CountVectorizer(stop_words='english')
-    X_data = count_vect.fit_transform(X_list_clean_comb)
-    X_data = X_data.todense()
-
-    X = X_data
-
-    # Create w2v Model
-    X_data_w2v = MeanEmbeddingVectorizer(model).transform(X_list_clean)
-    X_data_w2v = np.vstack(X_data_w2v)
-
-    X_w2v = X_data_w2v
-
-    # Load in the pretrained model
-    with open('./Resources/q1model.pickle', 'rb') as handle:
-        qmodel = pickle.load(handle)
-
-    prediction = qmodel.predict(X_w2v)
-
-    response = ''
-
-    if prediction == 1:
-        response = 'Your Conceptual Understanding for Question 1 was predicted as correct. [Note: This feedback is currently in Beta]'
-    if prediction == 2:
-        response = 'Your Conceptual Understanding for Question 1 was predicted as partly correct. [Note: This feedback is currently in Beta]'
-    if prediction == 3:
-        response = 'Your Conceptual Understanding for Question 1 was predicted as incorrect. [Note: This feedback is currently in Beta]'
-
-    return response
-
-class Vectoriser(object):
-    def __init__(self, word2vec):
-        self.word2vec = word2vec
-        # if a text is empty we should return a vector of zeros
-        # with the same dimensionality as all the other vectors
-        self.dim = 300  # This is the dimentions which the Google News Vector contains.
-
-
-    def transform(self, X):
-        X_ret = []
-        for words in X:
-            average = []
-            for w in words:
-                if w in self.word2vec:
-                    average.append(self.word2vec[w])
-            average = np.mean(average or [np.zeros(self.dim)] , axis=0)
-            norm2 = (np.linalg.norm(average, ord=2) + 1e-6)
-            average = average / norm2
-            #if np.mean(average) != 0:
-            #    average = average - np.mean(average)
-            #    average = average / np.std(average)
-            X_ret.append(average)
-
-        return X_ret
-
-class MeanEmbeddingVectorizer(Vectoriser):
-
-    def fit(self, X, y):
-        return self
 
 
 

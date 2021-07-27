@@ -2,6 +2,22 @@ import csv
 
 import numpy as np
 import pickle
+
+import os
+import urllib.parse
+import urllib.request
+import base64
+
+from botbuilder.schema import (
+    ChannelAccount,
+    HeroCard,
+    CardAction,
+    ActivityTypes,
+    Attachment,
+    AttachmentData,
+    Activity,
+    ActionTypes,
+)
 class Student():
     def __init__(self, studentNumber = "undefined",quizPrefix = "undefined"):
         self.studentNumber = studentNumber
@@ -43,6 +59,9 @@ class Student():
 
     def get_student_question(self):
         return self.QuestionSet.get_question()
+    
+    def get_question_picture(self):
+        return self.QuestionSet.get_picture()
 
     def is_valid_quiz_response(self,sentence):
         valid = sentence in self.QuestionSet.MCQLetterOptions
@@ -80,7 +99,12 @@ class Student():
             return -1
 
     def get_feedback(self):
-        return self.QuestionSet.check_response_and_get_feedback(self.temp_MCQresponse,self.temp_MCQJustifications)
+        textresponse = self.QuestionSet.check_response_and_get_feedback(self.temp_MCQresponse,self.temp_MCQJustifications) 
+        textresponse += "  \n" + "do you want to do another quiz or finish?" + "  \n  \n currently:" + self.chatStatus
+        return textresponse
+
+    def save_progression(self):
+        return self.QuestionSet.commit_to_storage(self.quizPrefix ,self.studentNumber)
 
 
     def is_chat_status(self,chatStatus):
@@ -102,17 +126,24 @@ class Student():
             self.currQuestion = ""
             self.MCQfeedback = ""
             self.justificationfeedback =""
+            self.pickleName = "NA"
             self.currQuestionAnswer = ""
             self.currQuestionPicturePath = ""
             self.currQuestionOptions = ['N/A']*4
 
         def check_response_and_get_feedback(self, MCQresponse, MCQjustification):
             MCQpass = MCQresponse.lower() == self.currQuestionAnswer.lower()
-            self.justificationfeedback = predQ1Model(MCQjustification)
-
             self.MCQfeedback = "Correct" if MCQpass else  "Incorrect"
+            response = "Your MCQ Question was: " + self.MCQfeedback
+            # print("TEST: PICKLE EXIST")
+            # print("./Resources/"+self.pickleName + "vocab.pickle")
+            # print(os.path.isfile("./Resources/"+self.pickleName + "vocab.pickle"))
+            # print(os.path.isfile("./Resources/"+self.pickleName + "model.pickle"))
+            if os.path.isfile("./Resources/"+self.pickleName + "vocab.pickle") and os.path.isfile("./Resources/"+self.pickleName + "model.pickle"):
+                self.justificationfeedback = predModel(MCQjustification, self.pickleName)
+                response += "  \n" + "And your justification feedback is predicted as: " + self.justificationfeedback
         
-            return "Your MCQ Question was: " + self.MCQfeedback+ "  \n" + "And your justification feedback is:  \n" + self.justificationfeedback
+            return response
 
             # TODO: UPDATE SAVE RESPONSE
 
@@ -144,6 +175,9 @@ class Student():
             self.currQuestionPicturePath = self.QArray[i][1]
             self.currQuestionAnswer = self.QArray[i][7]
             self.currQuestionPoints = self.QArray[i][6]
+            self.totalQuestions = len(self.QArray)
+            self.remainingQuestions = self.totalQuestions - (i+1)
+            self.pickleName = str.strip(self.QArray[i][8])
             for j in range(0,self.MaxMCQOptions):
                 self.currQuestionOptions[j] = self.QArray[i][2+j]
             # for j in range(0,len(self.QArray[i])):
@@ -158,6 +192,24 @@ class Student():
                 response += self.MCQLetterOptions[i] + ": " + self.currQuestionOptions[i] + "  \n"
             return response 
     
+        def get_picture(self):
+            print(self.currQuestionPicturePath)
+            impath = "./Resources/Images/"+self.currQuestionPicturePath + ".png"
+            if os.path.isfile(impath):
+                return _get_inline_attachment(impath)
+            else:
+                return -1
+        
+        def commit_to_storage(self, quiz_prefix ,student_number):
+            with open('./Resources/Data_Students/' + quiz_prefix + student_number + self.suffix) as csv_student:
+                csv_sreader = csv.reader(csv_student, delimiter=',')
+                for row in csv_sreader:
+                    if row[1].isdecimal(): 
+                        self.student_qn.append(row[0])
+                        self.student_qd.append(int(row[1]))
+
+            return self.remainingQuestions
+            
 
     class QuizRead():
         def __init__(self):
@@ -197,10 +249,10 @@ class Student():
             return self.notDoneArray
             
             
-def predQ1Model(sentence):
+def predModel(sentence,picklename):
     ##EXPORTED MODEL
     from sklearn.feature_extraction.text import CountVectorizer
-    with open('./Resources/vocab.pickle', 'rb') as handle:
+    with open('./Resources/' + picklename +'vocab.pickle', 'rb') as handle:
         model = pickle.load(handle)
 
     X_list = sentence
@@ -237,7 +289,7 @@ def predQ1Model(sentence):
     X_w2v = X_data_w2v
 
     # Load in the pretrained model
-    with open('./Resources/q1model.pickle', 'rb') as handle:
+    with open('./Resources/'+ picklename + 'model.pickle', 'rb') as handle:
         qmodel = pickle.load(handle)
 
     prediction = qmodel.predict(X_w2v)
@@ -245,11 +297,11 @@ def predQ1Model(sentence):
     response = ''
 
     if prediction == 1:
-        response = 'Your Conceptual Understanding for Question 1 was predicted as correct. [Note: This feedback is currently in Beta]'
+        response = 'Correct. [Note: This feedback is currently in Beta]'
     if prediction == 2:
-        response = 'Your Conceptual Understanding for Question 1 was predicted as partly correct. [Note: This feedback is currently in Beta]'
+        response = 'Partly correct. [Note: This feedback is currently in Beta]'
     if prediction == 3:
-        response = 'Your Conceptual Understanding for Question 1 was predicted as incorrect. [Note: This feedback is currently in Beta]'
+        response = 'Incorrect. [Note: This feedback is currently in Beta]'
 
     return response
 
@@ -283,3 +335,35 @@ class MeanEmbeddingVectorizer(Vectoriser):
     def fit(self, X, y):
         return self
 
+
+##############################################
+# ADDITIONAL FUNCTIONS
+##############################################              
+def _get_inline_attachment(impath) -> Attachment:
+    """
+    Creates an inline attachment sent from the bot to the user using a base64 string.
+    Using a base64 string to send an attachment will not work on all channels.
+    Additionally, some channels will only allow certain file types to be sent this way.
+    For example a .png file may work but a .pdf file may not on some channels.
+    Please consult the channel documentation for specifics.
+    :return: Attachment
+    """
+    file_path = os.path.join(os.getcwd(), impath)
+    with open(file_path, "rb") as in_file:
+        base64_image = base64.b64encode(in_file.read()).decode()
+
+    return Attachment(
+        name="PictureQuestion.png",
+        content_type="image/png",
+        content_url=f"data:image/png;base64,{base64_image}",
+    )
+def _get_internet_attachment(self) -> Attachment:
+    """
+    Creates an Attachment to be sent from the bot to the user from a HTTP URL.
+    :return: Attachment
+    """
+    return Attachment(
+        name="architecture-resize.png",
+        content_type="image/png",
+        content_url="https://docs.microsoft.com/en-us/bot-framework/media/how-it-works/architecture-resize.png",
+    )

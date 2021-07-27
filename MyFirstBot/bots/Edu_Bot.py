@@ -102,7 +102,11 @@ class EduBot(ActivityHandler):
                     # self.Student.get_student_question()
                     await turn_context.send_activity(f"You Requested To do Quiz {quizName}")
                     response.text = self.Student.get_student_question()  + "  \n Please enter your option."
-                    response.attachments = [self._get_inline_attachment()]
+                    # response.attachments = [self._get_inline_attachment()]
+                    picture = self.Student.get_question_picture()
+                    print(picture)
+                    if picture != -1:
+                        response.attachments = [picture]
                     self.Student.set_chat_status("QuizQuestioning") #CHANGE THIS TO quizQuestioning WHEN WORKING
 
             else:
@@ -152,8 +156,7 @@ class EduBot(ActivityHandler):
                 response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
                 
             elif self.Student.is_valid_confirm_response(sentence):# POINTER CHECKING HAPPENS HERE
-                feedback = self.Student.get_feedback()
-                response.text = feedback + "  \n" + "do you want to do another quiz or finish?" + "  \n  \n currently:" + self.Student.chatStatus
+                response.text = self.Student.get_feedback() 
                 self.Student.set_chat_status("QuizFeedback")
                 
             else: 
@@ -173,8 +176,13 @@ class EduBot(ActivityHandler):
             
             elif self.Student.is_valid_postfeedback_response(sentence) == 1:
 
-                response.text = "Here is your next question:" + self.Student.get_student_question()  + "  \n Please enter your option." + "  \n  \n currently:" + self.Student.chatStatus 
-                self.Student.chatStatus = "QuizQuestioning" 
+                response.text = "Here is your next question:" + self.Student.get_student_question()  + "  \n Please enter your option."  + "  \n  \n currently:" + self.Student.chatStatus
+
+                picture = self.Student.get_question_picture()
+                if picture != -1:
+                    response.attachments = [picture]
+               
+                self.Student.set_chat_status("QuizQuestioning")
                 
             elif self.Student.is_valid_postfeedback_response(sentence) == 0:
                 self.Student.set_chat_status("quiz_greeting")
@@ -188,37 +196,6 @@ class EduBot(ActivityHandler):
         return await turn_context.send_activity(response)
 
 
-    ##############################################
-    # ADDITIONAL FUNCTIONS
-    ##############################################              
-    def _get_inline_attachment(self) -> Attachment:
-        """
-        Creates an inline attachment sent from the bot to the user using a base64 string.
-        Using a base64 string to send an attachment will not work on all channels.
-        Additionally, some channels will only allow certain file types to be sent this way.
-        For example a .png file may work but a .pdf file may not on some channels.
-        Please consult the channel documentation for specifics.
-        :return: Attachment
-        """
-        file_path = os.path.join(os.getcwd(), "./Resources/Images/test-picture.png")
-        with open(file_path, "rb") as in_file:
-            base64_image = base64.b64encode(in_file.read()).decode()
-
-        return Attachment(
-            name="PictureQUestion.png",
-            content_type="image/png",
-            content_url=f"data:image/png;base64,{base64_image}",
-        )
-    def _get_internet_attachment(self) -> Attachment:
-        """
-        Creates an Attachment to be sent from the bot to the user from a HTTP URL.
-        :return: Attachment
-        """
-        return Attachment(
-            name="architecture-resize.png",
-            content_type="image/png",
-            content_url="https://docs.microsoft.com/en-us/bot-framework/media/how-it-works/architecture-resize.png",
-        )
     
     ##############################################
     # ADDITIONAL CLASSES

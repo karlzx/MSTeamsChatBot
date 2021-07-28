@@ -54,6 +54,7 @@ class Student():
         else:
             setName =self.notDoneArray[quizNumber-1][0]
             currentQ = int(self.notDoneArray[quizNumber-1][3])-int(self.notDoneArray[quizNumber-1][2])
+            print("Internal Test -->" + setName)
             self.QuestionSet.open_quiz_set(setName,currentQ)
             return setName
 
@@ -130,19 +131,21 @@ class Student():
             self.currQuestionAnswer = ""
             self.currQuestionPicturePath = ""
             self.currQuestionOptions = ['N/A']*4
+            self.quizSuffix = ".csv"
 
         def check_response_and_get_feedback(self, MCQresponse, MCQjustification):
             MCQpass = MCQresponse.lower() == self.currQuestionAnswer.lower()
             self.MCQfeedback = "Correct" if MCQpass else  "Incorrect"
             response = "Your MCQ Question was: " + self.MCQfeedback
-            # print("TEST: PICKLE EXIST")
+            print("TEST: PICKLE EXIST")
             # print("./Resources/"+self.pickleName + "vocab.pickle")
             # print(os.path.isfile("./Resources/"+self.pickleName + "vocab.pickle"))
             # print(os.path.isfile("./Resources/"+self.pickleName + "model.pickle"))
-            if os.path.isfile("./Resources/"+self.pickleName + "vocab.pickle") and os.path.isfile("./Resources/"+self.pickleName + "model.pickle"):
+            if os.path.isfile("./Resources/Data_Models/"+self.pickleName + "vocab.pickle") and os.path.isfile("./Resources/Data_Models/"+self.pickleName + "model.pickle"):
                 self.justificationfeedback = predModel(MCQjustification, self.pickleName)
                 response += "  \n" + "And your justification feedback is predicted as: " + self.justificationfeedback
-        
+            else: 
+                self.justificationfeedback = "Not Found"
             return response
 
             # TODO: UPDATE SAVE RESPONSE
@@ -152,8 +155,11 @@ class Student():
             self.currStudentMCQResponse = mcqjustification
 
         def open_quiz_set(self,setName,currentQind):
+            
             self.questionSetName = setName
             self.currInd = currentQind
+            print("Internal Test -->" + './Resources/Data_Quiz/'+ self.questionSetName +'.csv')
+            self.QArray = [] 
             with open('./Resources/Data_Quiz/'+ self.questionSetName +'.csv') as csv_qreader:
                     for row in csv_qreader:
                         x = row.split(',')
@@ -166,7 +172,7 @@ class Student():
 
             self.update_Question()
 
-            print(self.QArray)
+            # print(self.QArray)
         
         def update_Question(self):
             i = self.currInd
@@ -193,7 +199,7 @@ class Student():
             return response 
     
         def get_picture(self):
-            print(self.currQuestionPicturePath)
+            # print(self.currQuestionPicturePath)
             impath = "./Resources/Images/"+self.currQuestionPicturePath + ".png"
             if os.path.isfile(impath):
                 return _get_inline_attachment(impath)
@@ -201,14 +207,46 @@ class Student():
                 return -1
         
         def commit_to_storage(self, quiz_prefix ,student_number):
-            with open('./Resources/Data_Students/' + quiz_prefix + student_number + self.suffix) as csv_student:
+            
+            csv_sreader_list = []
+            found = False 
+            i = 0
+            csvpath = './Resources/Data_Students/' + quiz_prefix + student_number + self.quizSuffix
+            with open(csvpath) as csv_student:
                 csv_sreader = csv.reader(csv_student, delimiter=',')
-                for row in csv_sreader:
-                    if row[1].isdecimal(): 
-                        self.student_qn.append(row[0])
-                        self.student_qd.append(int(row[1]))
+                csv_sreader_list.extend(csv_sreader)
 
-            return self.remainingQuestions
+            for row in csv_sreader_list:
+               
+                if row[1].isdecimal() and row[0] == self.questionSetName: 
+                    found = True
+                    break
+                i+=1
+
+            if found:
+                foundRow = csv_sreader_list[i][:]
+                # print(self.questionSetName)
+                newCompleted = int(foundRow[1]) +1
+                newScore = int(foundRow[2]) + int(self.currQuestionPoints)
+                newFeedback = str(foundRow[3]) + " Q"+str(newCompleted)+": "\
+                    +"MCQ: " + self.MCQfeedback +", SAR: " + \
+                        self.justificationfeedback +"."
+                # line_overwrite = {i:[self.questionSetName,newCompleted ,newScore, newFeedback]}
+            line_overwrite = [self.questionSetName,newCompleted ,newScore, newFeedback]
+            # else: TODO: APPEND 
+
+            # Write data to the csv file and replace the lines in the line_to_override dict.
+            with open(csvpath, 'w', newline='') as csv_studentwrite:
+                csv_swriter = csv.writer(csv_studentwrite)
+                j = 0
+                for row in csv_sreader_list:
+                    if j == i:
+                        csv_swriter.writerow(line_overwrite)
+                    else:
+                        csv_swriter.writerow(row)
+                    j+=1
+
+            return line_overwrite
             
 
     class QuizRead():
@@ -230,6 +268,7 @@ class Student():
 
                     
                     for row in csv_sreader:
+                        print(row)
                         if row[1].isdecimal(): 
                             self.student_qn.append(row[0])
                             self.student_qd.append(int(row[1]))
@@ -252,7 +291,7 @@ class Student():
 def predModel(sentence,picklename):
     ##EXPORTED MODEL
     from sklearn.feature_extraction.text import CountVectorizer
-    with open('./Resources/' + picklename +'vocab.pickle', 'rb') as handle:
+    with open('./Resources/Data_Models/' + picklename +'vocab.pickle', 'rb') as handle:
         model = pickle.load(handle)
 
     X_list = sentence
@@ -289,7 +328,7 @@ def predModel(sentence,picklename):
     X_w2v = X_data_w2v
 
     # Load in the pretrained model
-    with open('./Resources/'+ picklename + 'model.pickle', 'rb') as handle:
+    with open('./Resources/Data_Models/'+ picklename + 'model.pickle', 'rb') as handle:
         qmodel = pickle.load(handle)
 
     prediction = qmodel.predict(X_w2v)
@@ -297,11 +336,11 @@ def predModel(sentence,picklename):
     response = ''
 
     if prediction == 1:
-        response = 'Correct. [Note: This feedback is currently in Beta]'
+        response = 'Correct'#. [Note: This feedback is currently in Beta]'
     if prediction == 2:
-        response = 'Partly correct. [Note: This feedback is currently in Beta]'
+        response = 'Partly correct'#. [Note: This feedback is currently in Beta]'
     if prediction == 3:
-        response = 'Incorrect. [Note: This feedback is currently in Beta]'
+        response = 'Incorrect'#. [Note: This feedback is currently in Beta]'
 
     return response
 

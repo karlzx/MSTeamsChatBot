@@ -104,7 +104,6 @@ class EduBot(ActivityHandler):
                     response.text = self.Student.get_student_question()  + "  \n Please enter your option."
                     # response.attachments = [self._get_inline_attachment()]
                     picture = self.Student.get_question_picture()
-                    print(picture)
                     if picture != -1:
                         response.attachments = [picture]
                     self.Student.set_chat_status("QuizQuestioning") #CHANGE THIS TO quizQuestioning WHEN WORKING
@@ -157,6 +156,7 @@ class EduBot(ActivityHandler):
                 
             elif self.Student.is_valid_confirm_response(sentence):# POINTER CHECKING HAPPENS HERE
                 response.text = self.Student.get_feedback() 
+                self.Student.save_progression()
                 self.Student.set_chat_status("QuizFeedback")
                 
             else: 

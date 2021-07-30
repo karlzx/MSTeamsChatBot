@@ -37,8 +37,8 @@ class EduBot(ActivityHandler):
     ):
         for member in members_added:
             if member.id != turn_context.activity.recipient.id:
-                await turn_context.send_activity("Hi I'm Ed the Educational Bot! type 'quit' to exit")
                 self.Student = quiz.Student("n9725342","EGB242_2021_1_")
+                await turn_context.send_activity("Hi " +self.Student.studentName + ", I'm Ed the Educational Bot!  \n  \n Type 'help' to find out what I can do or 'quit' to exit.")
                 
     
 
@@ -67,9 +67,17 @@ class EduBot(ActivityHandler):
                     response.text = "Welcome to quiz mode:  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz"
                 
                 elif self.MLmodel.is_user_intent("quizdetails"):
-                    print("getting quiz")
-                    
+
                     response.text =  self.Student.get_student_summary()
+
+                elif self.MLmodel.is_user_intent("help"):
+                    text = "You can ask me to do the following:  \n" \
+                    +"'I want to do a quiz' to perform a quiz.  \n"\
+                    +"'When are my quizzes due?' to check your quiz due dates.  \n"\
+                    +"'Who is my course coordinator?' to see relevant staff information.  \n  \n"\
+                    +"If you need assistance with your uni work, please contact your Lecturer, Tutor, HiQ, or the faculty!"
+                    response.text =  text
+
 
                 else:
                     response.text = self.MLmodel.pick_response_from_model()

@@ -21,6 +21,7 @@ from botbuilder.schema import (
 class Student():
     def __init__(self, studentNumber = "undefined",quizPrefix = "undefined"):
         self.studentNumber = studentNumber
+        self.studentName = "Karl"
         self.chatStatus = "greeting"
         self.notDoneArray = [] #table of quizzes not done, columns: [quiz name, quiz due date, remaining questions, total questions]
         self.quizPrefix = quizPrefix

@@ -183,8 +183,8 @@ class EduBot(ActivityHandler):
                 response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
             
             elif self.Student.is_valid_postfeedback_response(sentence) == 1:
-
-                response.text = "Here is your next question:" + self.Student.get_student_question()  + "  \n Please enter your option."  + "  \n  \n currently:" + self.Student.chatStatus
+                
+                response.text = "Here is your next question:" + self.Student.get_next_question()  + "  \n Please enter your option."  + "  \n  \n currently:" + self.Student.chatStatus
 
                 picture = self.Student.get_question_picture()
                 if picture != -1:

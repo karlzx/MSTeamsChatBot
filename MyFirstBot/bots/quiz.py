@@ -114,6 +114,11 @@ class Student():
 
     def set_chat_status(self, newChatStatus):
         self.chatStatus = newChatStatus    
+    
+    def get_next_question(self):
+        self.QuestionSet.update_index()
+        self.QuestionSet.update_Question()
+        return self.QuestionSet.get_question()
 
     class QuestionSet():
         def __init__(self):
@@ -175,6 +180,9 @@ class Student():
 
             # print(self.QArray)
         
+        def update_index(self):
+            self.currInd +=1
+            
         def update_Question(self):
             i = self.currInd
             

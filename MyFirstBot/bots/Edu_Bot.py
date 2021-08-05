@@ -60,29 +60,32 @@ class EduBot(ActivityHandler):
         # Starting point of the user. The user can request to do a quiz, request information about their assessments, 
         ##############################################
         if self.Student.is_chat_status("greeting"):
-            if self.MLmodel.intent_detected():
-                if self.MLmodel.is_user_intent("quiz"):
-                    self.Student.set_chat_status("quiz_greeting")
+            if not self.Student.has_spelling_errors(sentence):
+                if self.MLmodel.intent_detected():
+                    if self.MLmodel.is_user_intent("quiz"):
+                        self.Student.set_chat_status("quiz_greeting")
 
-                    response.text = "Welcome to quiz mode:  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz"
-                
-                elif self.MLmodel.is_user_intent("quizdetails"):
+                        response.text = "Welcome to quiz mode:  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz"
+                    
+                    elif self.MLmodel.is_user_intent("quizdetails"):
 
-                    response.text =  self.Student.get_student_summary()
+                        response.text =  self.Student.get_student_summary()
 
-                elif self.MLmodel.is_user_intent("help"):
-                    text = "You can ask me to do the following:  \n" \
-                    +"'I want to do a quiz' to perform a quiz.  \n"\
-                    +"'When are my quizzes due?' to check your quiz due dates.  \n"\
-                    +"'Who is my course coordinator?' to see relevant staff information.  \n  \n"\
-                    +"If you need assistance with your uni work, please contact your Lecturer, Tutor, HiQ, or the faculty!"
-                    response.text =  text
+                    elif self.MLmodel.is_user_intent("help"):
+                        text = "You can ask me to do the following:  \n" \
+                        +"'I want to do a quiz' to perform a quiz.  \n"\
+                        +"'When are my quizzes due?' to check your quiz due dates.  \n"\
+                        +"'Who is my course coordinator?' to see relevant staff information.  \n  \n"\
+                        +"If you need assistance with your uni work, please contact your Lecturer, Tutor, HiQ, or the faculty!"
+                        response.text =  text
 
 
+                    else:
+                        response.text = self.MLmodel.pick_response_from_model()
                 else:
-                    response.text = self.MLmodel.pick_response_from_model()
+                    response.text = f"I do not understand...."
             else:
-                response.text = f"I do not understand...."
+                response.text = f"Do you mean: " + self.Student.sentence_corrected+ "?  \nPlease re-enter your response" 
 
         ##############################################
         # STATE : QUIZ GREETING
@@ -144,10 +147,14 @@ class EduBot(ActivityHandler):
         ##############################################
         elif self.Student.is_chat_status("QuizJustifying"):
             self.justification = sentence
-            if self.Student.is_valid_justification_response(sentence):
+            if self.Student.is_valid_justification_response(sentence) == -2: #Wrong Spelling
+                response.text = "Did you mean: "+ self.Student.sentence_corrected + "?  \nPlease re-enter your response" 
+                self.Student.set_chat_status("QuizJustifying")
+            elif self.Student.is_valid_justification_response(sentence) == 1:
                 self.Student.set_chat_status("QuizConfirming")
                 response.text = "Do you confirm? or would you like to change your answer?"  + "  \n  \n currently:" + self.Student.chatStatus
-                
+
+            
             #  TODO: QUIT 
             else:
                 response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
@@ -161,8 +168,7 @@ class EduBot(ActivityHandler):
         elif self.Student.is_chat_status("QuizConfirming"):
             if self.Student.is_valid_confirm_response(sentence) == -1:
                 response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
-                
-            elif self.Student.is_valid_confirm_response(sentence):# POINTER CHECKING HAPPENS HERE
+            elif self.Student.is_valid_confirm_response(sentence) == 1:# POINTER CHECKING HAPPENS HERE
                 response.text = self.Student.get_feedback() 
                 self.Student.save_progression()
                 self.Student.set_chat_status("QuizFeedback")

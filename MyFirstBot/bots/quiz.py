@@ -7,7 +7,8 @@ import os
 import urllib.parse
 import urllib.request
 import base64
-
+from spellchecker import SpellChecker
+from nltk_utils import tokenize
 from botbuilder.schema import (
     ChannelAccount,
     HeroCard,
@@ -28,9 +29,36 @@ class Student():
         self.QuizRead = self.QuizRead()
         self.QuestionSet = self.QuestionSet()
 
+        self.spell = SpellChecker()
+        self.sentence_in = ''
+        self.sentence_corrected = ''
+        self.isMispelled = False
+
     def __read_data(self):
         self.notDoneArray = self.QuizRead.update_student_summary(self.quizPrefix,self.studentNumber)
 
+
+    def has_spelling_errors(self,sentence):
+        sentence = sentence.lower()
+        print("Input: " + sentence)
+        sentence_array = tokenize(sentence)
+        misspelled = self.spell.unknown(sentence_array)
+
+        self.isMispelled = len(misspelled)>0
+        self.sentence_in = sentence
+
+        if self.isMispelled:
+            for word in misspelled:
+                sentence = sentence.replace(word, self.spell.correction(word))
+            
+            self.sentence_corrected = sentence
+        else:
+            self.sentence_corrected = self.sentence_in 
+        
+        return self.isMispelled
+
+
+            
 
     ## Method to gather remaining quiz performed data
     def get_student_summary(self):
@@ -75,11 +103,15 @@ class Student():
 
     def is_valid_justification_response(self,sentence):
         #TODO GREATER RESPONSE
-        valid = len(sentence)>0
-        
-        if valid:
+
+        if self.has_spelling_errors(sentence):
+            valid = -2
+        elif len(sentence)>0:
             self.temp_MCQJustifications = sentence
-        
+            valid = 1
+        else:
+            valid = 0
+        print("VALID VALUE: "+str(valid))
         return valid
 
     def is_valid_postfeedback_response(self,sentence):

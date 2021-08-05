@@ -34,10 +34,10 @@ def bag_of_words(tokenized_sentence, all_words):
 
 # tokenize test
 
-# a = "How long does shipping take?"
-# print(a)
-# a = tokenize(a)
-# print(a)
+a = "How long does shipping take?"
+print(a)
+a = tokenize(a)
+print(a)
 
 #stem test
 

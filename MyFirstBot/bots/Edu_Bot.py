@@ -7,22 +7,29 @@ import torch
 from . import quiz
 from model import NeuralNet
 from nltk_utils import bag_of_words, tokenize
-
-from botbuilder.core import ActivityHandler, MessageFactory, TurnContext
+from botbuilder.core import ActivityHandler, MessageFactory, TurnContext,CardFactory
 from botbuilder.schema import ChannelAccount
 
-# quiz_prefix = 
-# student_number = "n9725342"
+import os
+import urllib.parse
+import urllib.request
+import base64
 
-# student_number = "n9725342"
-
-# Quiz = quiz.Quiz()
+from botbuilder.schema import (
+    ChannelAccount,
+    HeroCard,
+    CardAction,
+    ActivityTypes,
+    Attachment,
+    AttachmentData,
+    Activity,
+    ActionTypes,
+)
 
 
 class EduBot(ActivityHandler):
     def __init__(self):
         self.bot_name = "Ed"
-        self.Student = quiz.Student("n9725342","EGB242_2021_1_")
         self.MLmodel = self.MLmodel()
 
     async def on_members_added_activity(
@@ -30,7 +37,9 @@ class EduBot(ActivityHandler):
     ):
         for member in members_added:
             if member.id != turn_context.activity.recipient.id:
-                await turn_context.send_activity("Hi I'm Ed the Educational Bot! type 'quit' to exit")
+                self.Student = quiz.Student("n9725342","EGB242_2021_1_")
+                await turn_context.send_activity("Hi " +self.Student.studentName + ", I'm Ed the Educational Bot!  \n  \n Type 'help' to find out what I can do or 'quit' to exit.")
+                
     
 
     async def on_message_activity(self, turn_context: TurnContext):
@@ -42,69 +51,177 @@ class EduBot(ActivityHandler):
         print(f"Current state {self.Student.chatStatus}")
 
         print(f"User said {sentence}. gathered: intent {self.MLmodel.tag} with probability {self.MLmodel.prob.item()}")
-
-        if self.Student.is_chat_status("greeting"):
-            if self.MLmodel.prob.item() > self.MLmodel.acceptance_probability:
-                if self.MLmodel.tag == "quiz":
-                    self.Student.chatStatus = "quiz_greeting"
-                    response = "Welcome to quiz mode:  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz"
-                
-                elif self.MLmodel.tag == "quizdetails":
-                    print("getting quiz")
-                    response =  self.Student.get_student_summary()
-
-                else:
-                    for intent in self.MLmodel.intents["intents"]:
-                        if self.MLmodel.tag == intent["tag"]:
-                            response = f"{random.choice(intent['responses'])}" 
-            else:
-                response = f"I do not understand...."
+        response = Activity(type=ActivityTypes.message)
         
-        elif self.Student.is_chat_status("quiz_greeting"):
-            if self.MLmodel.prob.item() > self.MLmodel.acceptance_probability:
-                if self.MLmodel.tag == "quit":
-                    self.Student.chatStatus = "greeting"
-                    await turn_context.send_activity("Goodbye!  \n"+ self.Student.get_student_summary())
-                    response = f"What would you like to do?"
+        ##############################################
+        # STATE : GREETING
+        ##############################################
+        # DESC :
+        # Starting point of the user. The user can request to do a quiz, request information about their assessments, 
+        ##############################################
+        if self.Student.is_chat_status("greeting"):
+            if not self.Student.has_spelling_errors(sentence):
+                if self.MLmodel.intent_detected():
+                    if self.MLmodel.is_user_intent("quiz"):
+                        self.Student.set_chat_status("quiz_greeting")
+
+                        response.text = "Welcome to quiz mode:  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz"
+                    
+                    elif self.MLmodel.is_user_intent("quizdetails"):
+
+                        response.text =  self.Student.get_student_summary()
+
+                    elif self.MLmodel.is_user_intent("help"):
+                        text = "You can ask me to do the following:  \n" \
+                        +"'I want to do a quiz' to perform a quiz.  \n"\
+                        +"'When are my quizzes due?' to check your quiz due dates.  \n"\
+                        +"'Who is my course coordinator?' to see relevant staff information.  \n  \n"\
+                        +"If you need assistance with your uni work, please contact your Lecturer, Tutor, HiQ, or the faculty!"
+                        response.text =  text
+
+
+                    else:
+                        response.text = self.MLmodel.pick_response_from_model()
                 else:
-                    response = f"Not supported. Please pick a quiz or type 'quit' to return to home."
+                    response.text = f"I do not understand...."
+            else:
+                response.text = f"Do you mean: " + self.Student.sentence_corrected+ "?  \nPlease re-enter your response" 
+
+        ##############################################
+        # STATE : QUIZ GREETING
+        ##############################################
+        # DESC :
+        # User is given their available quizzes, and can select to do their desired quiz
+        ##############################################
+        elif self.Student.is_chat_status("quiz_greeting"):
+            if self.MLmodel.intent_detected():
+                if self.MLmodel.is_user_intent("quit"):
+                    self.Student.set_chat_status("greeting")
+                    await turn_context.send_activity("Goodbye!  \n"+ self.Student.get_student_summary())
+                    response.text = f"What would you like to do?"
+
+                else:
+                    response.text = f"Not supported. Please pick a quiz or type 'quit' to return to home."
             
             elif sentence.isnumeric():
                 quizName = self.Student.get_student_quiz(int(sentence))
 
                 if quizName == -1:
-                    response = f"That is not a valid response, pick again"
-                else:
+                    response.text = f"That is not a valid response, pick again" + "  \n  \n currently:" + self.Student.chatStatus
+
+                else: 
                     # self.Student.get_student_question()
                     await turn_context.send_activity(f"You Requested To do Quiz {quizName}")
-                    response = self.Student.get_student_question()  + "  \n Please enter your option."
-                    self.Student.chatStatus = "QuizQuestioning" #CHANGE THIS TO quizQuestioning WHEN WORKING
+                    response.text = self.Student.get_student_question()  + "  \n Please enter your option."
+                    # response.attachments = [self._get_inline_attachment()]
+                    picture = self.Student.get_question_picture()
+                    if picture != -1:
+                        response.attachments = [picture]
+                    self.Student.set_chat_status("QuizQuestioning") #CHANGE THIS TO quizQuestioning WHEN WORKING
 
             else:
-                response = f"I do not understand...."
+                response.text = f"I do not understand...." + "  \n  \n currently:" + self.Student.chatStatus
 
-
-
+        ##############################################
+        # STATE : QUIZ QUESTIONING
+        ##############################################
+        # DESC :
+        # User is given a question
+        # Response should be a letter response to. passes onto justification if a valid response
+        ##############################################
         elif  self.Student.is_chat_status("QuizQuestioning"):
             # send details when you get into quiz as an await.
-            if self.Student.check_correct_answer(sentence):
-                response = "Correct"
+            if self.Student.is_valid_quiz_response(sentence): 
+                self.Student.set_chat_status("QuizJustifying")
+                response.text = "Please Justify Your Answer" + "  \n  \n currently:" + self.Student.chatStatus
+            #  TODO: QUIT 
             else:
-                response = "Wrong"
+                response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
+
+        
+        ##############################################
+        # STATE : QUIZ JUSTIFYING
+        ##############################################
+        # DESC :
+        # User is asked to enter a short answer justification. 
+        ##############################################
+        elif self.Student.is_chat_status("QuizJustifying"):
+            self.justification = sentence
+            if self.Student.is_valid_justification_response(sentence) == -2: #Wrong Spelling
+                response.text = "Did you mean: "+ self.Student.sentence_corrected + "?  \nPlease re-enter your response" 
+                self.Student.set_chat_status("QuizJustifying")
+            elif self.Student.is_valid_justification_response(sentence) == 1:
+                self.Student.set_chat_status("QuizConfirming")
+                response.text = "Do you confirm? or would you like to change your answer?"  + "  \n  \n currently:" + self.Student.chatStatus
+
             
+            #  TODO: QUIT 
+            else:
+                response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
+        
+        ##############################################
+        # STATE : QUIZ CONFIRMING
+        ##############################################
+        # DESC :
+        # User is asked to confirm answer. They can either say yes which will submit to pointer checking, or go back to quiz questioning. 
+        ##############################################
+        elif self.Student.is_chat_status("QuizConfirming"):
+            if self.Student.is_valid_confirm_response(sentence) == -1:
+                response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
+            elif self.Student.is_valid_confirm_response(sentence) == 1:# POINTER CHECKING HAPPENS HERE
+                response.text = self.Student.get_feedback() 
+                self.Student.save_progression()
+                self.Student.set_chat_status("QuizFeedback")
+                
+            else: 
+                response.text = self.Student.get_student_question()  + "  \n Please enter your option."
+                self.Student.set_chat_status("QuizQuestioning") 
+
+        ##############################################
+        # STATE : QUIZ FEEDBACK
+        ##############################################
+        # DESC :
+        # User is given feedback, they can go on to do more questions or leave the quiz.
+        ##############################################
+
+        elif self.Student.is_chat_status("QuizFeedback"):
+            if self.Student.is_valid_postfeedback_response(sentence) == -1:
+                response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
+            
+            elif self.Student.is_valid_postfeedback_response(sentence) == 1:
+                
+                response.text = "Here is your next question:" + self.Student.get_next_question()  + "  \n Please enter your option."  + "  \n  \n currently:" + self.Student.chatStatus
+
+                picture = self.Student.get_question_picture()
+                if picture != -1:
+                    response.attachments = [picture]
+               
+                self.Student.set_chat_status("QuizQuestioning")
+                
+            elif self.Student.is_valid_postfeedback_response(sentence) == 0:
+                self.Student.set_chat_status("quiz_greeting")
+
+                response.text = "Welcome back to quiz mode:  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz"
+            #  TODO: QUIT 
+            else:
+                response.text = "That is not a valid response, please enter try again."+ "  \n  \n currently:" + self.Student.chatStatus
 
                 
-        return await turn_context.send_activity(MessageFactory.text(f"{response}"))
-                        
-        
+        return await turn_context.send_activity(response)
+
+
+    
+    ##############################################
+    # ADDITIONAL CLASSES
+    ##############################################     
     class MLmodel():
         def __init__(self):
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-            with open('intents.json','r') as f:
+            with open('./Resources/intents.json','r') as f:
                 self.intents = json.load(f)
 
-            FILE = "data.pth"
+            FILE = "./Resources/data.pth"
 
             data = torch.load(FILE,map_location='cpu')
 
@@ -133,6 +250,41 @@ class EduBot(ActivityHandler):
             probs = torch.softmax(output, dim = 1)
             self.prob = probs[0][predicted.item()]
             self.acceptance_probability = 0.75
+        
+        # Checks if the user said something that matches an intent built into the model.
+        def intent_detected(self):
+            return self.prob.item() > self.acceptance_probability
+
+        def is_user_intent(self, intentquery):
+            return self.tag == intentquery
+        
+        def pick_response_from_model(self):
+            for intent in self.intents["intents"]:
+                        if self.tag == intent["tag"]:
+                            return f"{random.choice(intent['responses'])}" 
+
+   
+
+
+
+# if __name__ == "__main__":
+
+#     #Export vocab for each question before looking
+#     #exportQ1Vocab()
+
+#     #Create model for each question
+#     #createQ1Model()
+
+#     #Test some example setences prediction
+#     sentence1 = 'Frequency is the inverse of period' #Should be 1
+#     sentence2 = 'guess' #Should be 3
+#     sentence3 = 'Random words I am typing' #Should be 3
+#     sentence4 = 'The amplitude is higher' #Should be 3
+#     sentence5 = 'Option (a) has the greatest frequency, as the cycles oscillate the most.'  # Should be 3
+#     sentence6 = 'The signal frequency amplitude period is the highest in time.'
+#     sentence7 = 'The amplitude is the largest'
+    
+#     out1 = predQ1Model(sentence1)   
 
 
                 

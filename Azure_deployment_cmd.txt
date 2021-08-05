@@ -1,0 +1,1 @@
+az webapp deployment source config-zip --resource-group EduBot_v2Group --name EduBotv2 --src C:\Users\karls\Documents\GitHub\MSTeamsChatBot\PythonTest\MyFirstBot.zip

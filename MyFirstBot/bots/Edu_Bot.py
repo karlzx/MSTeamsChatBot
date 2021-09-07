@@ -149,11 +149,32 @@ class EduBot(ActivityHandler):
             self.justification = sentence
             if self.Student.is_valid_justification_response(sentence) == -2: #Wrong Spelling
                 response.text = "Did you mean: "+ self.Student.sentence_corrected + "?  \nPlease re-enter your response" 
-                self.Student.set_chat_status("QuizJustifying")
+                self.Student.set_chat_status("QuizSpelling")
             elif self.Student.is_valid_justification_response(sentence) == 1:
                 self.Student.set_chat_status("QuizConfirming")
                 response.text = "Do you confirm? or would you like to change your answer?"  + "  \n  \n currently:" + self.Student.chatStatus
 
+            
+            #  TODO: QUIT 
+            else:
+                response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
+        
+        ##############################################
+        # STATE : QUIZ SPELLING
+        ##############################################
+        # DESC :
+        # User is asked to enter if . 
+        ##############################################
+        elif self.Student.is_chat_status("QuizSpelling"):
+            self.justification = sentence
+            if self.Student.is_valid_spelling_response(sentence) == 1 or self.Student.is_valid_spelling_response(sentence) == -2: #accept or keep spelling
+                response.text = "Entering: "+ self.Student.new_justification 
+                response.text += "  \n  \nDo you confirm? or would you like to change your answer?" 
+                self.Student.set_chat_status("QuizConfirming")
+
+            elif self.Student.is_valid_spelling_response(sentence) == 0:
+                response.text = "Change requested. Please Enter a new response:"
+                self.Student.set_chat_status("QuizJustifying")
             
             #  TODO: QUIT 
             else:

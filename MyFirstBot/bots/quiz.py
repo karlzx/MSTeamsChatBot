@@ -103,16 +103,28 @@ class Student():
 
     def is_valid_justification_response(self,sentence):
         #TODO GREATER RESPONSE
-
+        self.original_justfication = sentence
         if self.has_spelling_errors(sentence):
             valid = -2
         elif len(sentence)>0:
-            self.temp_MCQJustifications = sentence
             valid = 1
         else:
             valid = 0
         print("VALID VALUE: "+str(valid))
         return valid
+    
+    def is_valid_spelling_response(self,sentence):
+
+        if sentence.lower() == "yes":
+            self.new_justification = self.sentence_corrected
+            return 1
+        elif sentence.lower() == "change":
+            return 0
+        elif sentence.lower() == "keep":
+            self.new_justification = self.original_justfication
+            return -2
+        else:
+            return -1
 
     def is_valid_postfeedback_response(self,sentence):
     #TODO GREATER RESPONSE
@@ -133,7 +145,7 @@ class Student():
             return -1
 
     def get_feedback(self):
-        textresponse = self.QuestionSet.check_response_and_get_feedback(self.temp_MCQresponse,self.temp_MCQJustifications) 
+        textresponse = self.QuestionSet.check_response_and_get_feedback(self.temp_MCQresponse,self.new_justification) 
         textresponse += "  \n" + "do you want to do another quiz or finish?" + "  \n  \n currently:" + self.chatStatus
         return textresponse
 

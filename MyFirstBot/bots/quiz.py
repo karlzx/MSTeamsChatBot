@@ -9,6 +9,7 @@ import urllib.request
 import base64
 from spellchecker import SpellChecker
 from nltk_utils import tokenize
+from datetime import datetime
 from botbuilder.schema import (
     ChannelAccount,
     HeroCard,
@@ -39,6 +40,7 @@ class Student():
 
 
     def has_spelling_errors(self,sentence):
+        original = sentence
         sentence = sentence.lower()
         print("Input: " + sentence)
         sentence_array = tokenize(sentence)
@@ -52,6 +54,13 @@ class Student():
                 sentence = sentence.replace(word, self.spell.correction(word))
             
             self.sentence_corrected = sentence
+
+            csvpath = './Resources/Data_Students/' + 'mispellings.csv'
+            with open(csvpath, 'a', newline='') as csv_studentwrite:
+                    csv_swriter = csv.writer(csv_studentwrite)
+                    line_overwrite = [datetime.now(), self.studentNumber, self.chatStatus, original]
+                    csv_swriter.writerow(line_overwrite)
+
         else:
             self.sentence_corrected = self.sentence_in 
         

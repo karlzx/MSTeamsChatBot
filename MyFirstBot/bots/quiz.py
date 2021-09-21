@@ -34,6 +34,8 @@ class Student():
         self.sentence_in = ''
         self.sentence_corrected = ''
         self.isMispelled = False
+        self.MCQFeedback = ""
+        self.JustificationFeedback = ""
 
     def __read_data(self):
         self.notDoneArray = self.QuizRead.update_student_summary(self.quizPrefix,self.studentNumber)
@@ -113,6 +115,7 @@ class Student():
     def is_valid_justification_response(self,sentence):
         #TODO GREATER RESPONSE
         self.original_justfication = sentence
+        self.new_justification = self.original_justfication
         if self.has_spelling_errors(sentence):
             valid = -2
         elif len(sentence)>0:
@@ -130,7 +133,6 @@ class Student():
         elif sentence.lower() == "change":
             return 0
         elif sentence.lower() == "keep":
-            self.new_justification = self.original_justfication
             return -2
         else:
             return -1
@@ -154,8 +156,13 @@ class Student():
             return -1
 
     def get_feedback(self):
-        textresponse = self.QuestionSet.check_response_and_get_feedback(self.temp_MCQresponse,self.new_justification) 
-        textresponse += "  \n" + "do you want to do another quiz or finish?" + "  \n  \n currently:" + self.chatStatus
+        textresponse,self.MCQFeedback,self.JustificationFeedback = self.QuestionSet.check_response_and_get_feedback(self.temp_MCQresponse,self.new_justification) 
+        textresponse += "  \n" + "do you want to do another quiz or finish?" 
+
+        if self.MCQFeedback == "Incorrect" or (self.JustificationFeedback != "Correct"):           
+            textresponse += "  \n  \nAs your answer is not fully correct, please look at this resource to improve your understanding:  \n https://www.youtube.com/watch?v=hewTwm5P0Gg&ab_channel=ZachStar"
+
+        
         return textresponse
 
     def save_progression(self):
@@ -193,19 +200,16 @@ class Student():
             self.quizSuffix = ".csv"
 
         def check_response_and_get_feedback(self, MCQresponse, MCQjustification):
-            MCQpass = MCQresponse.lower() == self.currQuestionAnswer.lower()
-            self.MCQfeedback = "Correct" if MCQpass else  "Incorrect"
+            self.MCQpass = MCQresponse.lower() == self.currQuestionAnswer.lower()
+            self.MCQfeedback = "Correct" if self.MCQpass else  "Incorrect"
             response = "Your MCQ Question was: " + self.MCQfeedback
             print("TEST: PICKLE EXIST")
-            # print("./Resources/"+self.pickleName + "vocab.pickle")
-            # print(os.path.isfile("./Resources/"+self.pickleName + "vocab.pickle"))
-            # print(os.path.isfile("./Resources/"+self.pickleName + "model.pickle"))
             if os.path.isfile("./Resources/Data_Models/"+self.pickleName + "vocab.pickle") and os.path.isfile("./Resources/Data_Models/"+self.pickleName + "model.pickle"):
                 self.justificationfeedback = predModel(MCQjustification, self.pickleName)
                 response += "  \n" + "And your justification feedback is predicted as: " + self.justificationfeedback
             else: 
                 self.justificationfeedback = "Not Found"
-            return response
+            return response,self.MCQfeedback, self.justificationfeedback
 
             # TODO: UPDATE SAVE RESPONSE
 

@@ -191,6 +191,7 @@ class EduBot(ActivityHandler):
                 response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
             elif self.Student.is_valid_confirm_response(sentence) == 1:# POINTER CHECKING HAPPENS HERE
                 response.text = self.Student.get_feedback() 
+                        
                 self.Student.save_progression()
                 self.Student.set_chat_status("QuizFeedback")
                 

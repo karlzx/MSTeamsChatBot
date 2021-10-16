@@ -159,9 +159,18 @@ class Student():
         textresponse,self.MCQFeedback,self.JustificationFeedback = self.QuestionSet.check_response_and_get_feedback(self.temp_MCQresponse,self.new_justification) 
         textresponse 
 
-        if self.MCQFeedback == "Incorrect" or (self.JustificationFeedback != "Correct"):           
+        if self.MCQFeedback == "Incorrect":
+            textresponse += "  \n  \n The correct answer is: " + self.QuestionSet.currQuestionAnswer
+        if self.MCQFeedback == "Incorrect" or (self.JustificationFeedback != "Correct" and self.QuestionSet.pickleExist):           
             textresponse += "  \n  \nAs your answer is not fully correct, please look at this resource to improve your understanding:  \n https://www.youtube.com/watch?v=hewTwm5P0Gg&ab_channel=ZachStar"
 
+        textresponse += "  \n  \nYou have " + str(self.QuestionSet.remainingQuestions) + " Questions remaining." 
+
+        if self.QuestionSet.remainingQuestions > 0:
+            textresponse += "  \n  \n" + "Enter 'again' to do another question, or type 'finish' to go back to the quiz menu." 
+
+        else: 
+            textresponse += "Type 'finish' to go back to the quiz menu." 
         
         return textresponse
 
@@ -194,6 +203,7 @@ class Student():
             self.MCQfeedback = ""
             self.justificationfeedback =""
             self.pickleName = "NA"
+            self.pickleExist = False
             self.currQuestionAnswer = ""
             self.currQuestionPicturePath = ""
             self.currQuestionOptions = ['N/A']*4
@@ -204,7 +214,7 @@ class Student():
             self.MCQfeedback = "Correct" if self.MCQpass else  "Incorrect"
             response = "Your MCQ Question was: " + self.MCQfeedback
             print("TEST: PICKLE EXIST")
-            if os.path.isfile("./Resources/Data_Models/"+self.pickleName + "vocab.pickle") and os.path.isfile("./Resources/Data_Models/"+self.pickleName + "model.pickle"):
+            if self.pickleExist:
                 self.justificationfeedback = predModel(MCQjustification, self.pickleName)
                 response += "  \n" + "And your justification feedback is predicted as: " + self.justificationfeedback
             else: 
@@ -250,6 +260,7 @@ class Student():
             self.totalQuestions = len(self.QArray)
             self.remainingQuestions = self.totalQuestions - (i+1)
             self.pickleName = str.strip(self.QArray[i][8])
+            self.pickleExist = os.path.isfile("./Resources/Data_Models/"+self.pickleName + "vocab.pickle") and os.path.isfile("./Resources/Data_Models/"+self.pickleName + "model.pickle")
             for j in range(0,self.MaxMCQOptions):
                 self.currQuestionOptions[j] = self.QArray[i][2+j]
             # for j in range(0,len(self.QArray[i])):

@@ -78,7 +78,7 @@ class Student():
         ndResponse = ""
 
         for i in range(0,len(self.notDoneArray)):
-            ndResponse += self.notDoneArray[i][0] +" "+ self.notDoneArray[i][1]  + ": Remaining - " +self.notDoneArray[i][2] +"  \n"
+            ndResponse += "({:.0f}) ".format(i+1) +  self.notDoneArray[i][0] +" "+ self.notDoneArray[i][1]  + ": Remaining - " +self.notDoneArray[i][2] +"  \n"
         
         if len(ndResponse) == 0:
             ndResponse = "You have completed all assigned quizzes"
@@ -157,7 +157,7 @@ class Student():
 
     def get_feedback(self):
         textresponse,self.MCQFeedback,self.JustificationFeedback = self.QuestionSet.check_response_and_get_feedback(self.temp_MCQresponse,self.new_justification) 
-        textresponse += "  \n" + "do you want to do another quiz or finish?" 
+        textresponse 
 
         if self.MCQFeedback == "Incorrect" or (self.JustificationFeedback != "Correct"):           
             textresponse += "  \n  \nAs your answer is not fully correct, please look at this resource to improve your understanding:  \n https://www.youtube.com/watch?v=hewTwm5P0Gg&ab_channel=ZachStar"

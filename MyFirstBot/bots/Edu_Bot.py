@@ -38,10 +38,13 @@ class EduBot(ActivityHandler):
         for member in members_added:
             if member.id != turn_context.activity.recipient.id:
                 self.Student = quiz.Student("n9725342","EGB242_2021_1_")
-                await turn_context.send_activity("Hi " +self.Student.studentName + ", I'm Ed the Educational Bot!  \n  \n Type 'help' to find out what I can do or 'quit' to exit.")
-                
-    
-
+                await turn_context.send_activity("Hi " +self.Student.studentName + ", I'm Ed the Educational Bot! Type 'help' to see what you can do!")
+                #  + \
+                #         + "  \n  \n" + "You can ask me to do the following:  \n" \
+                #         +"'I want to do a quiz' to perform a quiz.  \n"\
+                #         +"'When are my quizzes due?' to check your quiz due dates.  \n"\
+                #         +"'Who is my course coordinator?' to see relevant staff information.  \n  \n" \
+                #         +"If you need assistance with your uni work, please contact your Lecturer, Tutor, HiQ, or the faculty! or type 'help' to see this prompt again!" )
     async def on_message_activity(self, turn_context: TurnContext):
         sentence = turn_context.activity.text
         
@@ -65,7 +68,7 @@ class EduBot(ActivityHandler):
                     if self.MLmodel.is_user_intent("quiz"):
                         self.Student.set_chat_status("quiz_greeting")
 
-                        response.text = "Welcome to quiz mode:  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz"
+                        response.text = "Welcome to the quiz menu. Here you can select a quiz for you to do:  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz by entering the number in the brackets, or type quit to exit the quiz menu. "
                     
                     elif self.MLmodel.is_user_intent("quizdetails"):
 
@@ -83,7 +86,7 @@ class EduBot(ActivityHandler):
                     else:
                         response.text = self.MLmodel.pick_response_from_model()
                 else:
-                    response.text = f"I do not understand...."
+                    response.text = f"I do not understand....   \n  \n Type 'help' to find out what I can do or 'quit' to exit."
             else:
                 response.text = f"Do you mean: " + self.Student.sentence_corrected+ "?  \nPlease re-enter your response" 
 
@@ -98,7 +101,7 @@ class EduBot(ActivityHandler):
                 if self.MLmodel.is_user_intent("quit"):
                     self.Student.set_chat_status("greeting")
                     await turn_context.send_activity("Goodbye!  \n"+ self.Student.get_student_summary())
-                    response.text = f"What would you like to do?"
+                    response.text = f"What would you like to do?  \n  \n Type 'help' to find out what I can do or 'quit' to exit."
 
                 else:
                     response.text = f"Not supported. Please pick a quiz or type 'quit' to return to home."
@@ -148,16 +151,16 @@ class EduBot(ActivityHandler):
         elif self.Student.is_chat_status("QuizJustifying"):
             self.justification = sentence
             if self.Student.is_valid_justification_response(sentence) == -2: #Wrong Spelling
-                response.text = "Did you mean: "+ self.Student.sentence_corrected + "?  \nPlease re-enter your response" 
+                response.text = "Did you mean: "+ self.Student.sentence_corrected + "?  \n  \n Reply 'Yes' to accept the corrected spelling, 'Change' to modify your answer, or 'Keep' to submit your original answer." 
                 self.Student.set_chat_status("QuizSpelling")
             elif self.Student.is_valid_justification_response(sentence) == 1:
                 self.Student.set_chat_status("QuizConfirming")
-                response.text = "Do you confirm? or would you like to change your answer?"  + "  \n  \n currently:" + self.Student.chatStatus
+                response.text = "Do you confirm? or would you like to change your answer?  \n  \nReply 'Yes' to submit answer, or 'No' to change your answer."   
 
             
             #  TODO: QUIT 
             else:
-                response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
+                response.text = "That is not a valid response, please enter try again." 
         
         ##############################################
         # STATE : QUIZ SPELLING
@@ -169,7 +172,7 @@ class EduBot(ActivityHandler):
             self.justification = sentence
             if self.Student.is_valid_spelling_response(sentence) == 1 or self.Student.is_valid_spelling_response(sentence) == -2: #accept or keep spelling
                 response.text = "Entering: "+ self.Student.new_justification 
-                response.text += "  \n  \nDo you confirm? or would you like to change your answer?" 
+                response.text += "  \n  \nDo you confirm? or would you like to change your answer?  \n  \nReply 'Yes' to submit answer, or 'No' to change your answer." 
                 self.Student.set_chat_status("QuizConfirming")
 
             elif self.Student.is_valid_spelling_response(sentence) == 0:
@@ -178,7 +181,7 @@ class EduBot(ActivityHandler):
             
             #  TODO: QUIT 
             else:
-                response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
+                response.text = "That is not a valid response, please enter try again." 
         
         ##############################################
         # STATE : QUIZ CONFIRMING
@@ -188,15 +191,16 @@ class EduBot(ActivityHandler):
         ##############################################
         elif self.Student.is_chat_status("QuizConfirming"):
             if self.Student.is_valid_confirm_response(sentence) == -1:
-                response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
+                response.text = "That is not a valid response, please enter try again." 
+            
             elif self.Student.is_valid_confirm_response(sentence) == 1:# POINTER CHECKING HAPPENS HERE
-                response.text = self.Student.get_feedback() 
+                response.text = self.Student.get_feedback() + "  \n" + "Enter 'again' to do another question, or type 'finish' to go back to the quiz menu." 
                         
                 self.Student.save_progression()
                 self.Student.set_chat_status("QuizFeedback")
                 
             else: 
-                response.text = self.Student.get_student_question()  + "  \n Please enter your option."
+                response.text = self.Student.get_student_question()  + "  \n Please enter your option ('A', 'B', 'C', ...)"
                 self.Student.set_chat_status("QuizQuestioning") 
 
         ##############################################
@@ -208,11 +212,11 @@ class EduBot(ActivityHandler):
 
         elif self.Student.is_chat_status("QuizFeedback"):
             if self.Student.is_valid_postfeedback_response(sentence) == -1:
-                response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
+                response.text = "That is not a valid response, please enter try again." 
             
             elif self.Student.is_valid_postfeedback_response(sentence) == 1:
                 
-                response.text = "Here is your next question:" + self.Student.get_next_question()  + "  \n Please enter your option."  + "  \n  \n currently:" + self.Student.chatStatus
+                response.text = "Here is your next question:" + self.Student.get_next_question() + "  \n Please enter your option ('A', 'B', 'C', ...)"
 
                 picture = self.Student.get_question_picture()
                 if picture != -1:
@@ -223,7 +227,7 @@ class EduBot(ActivityHandler):
             elif self.Student.is_valid_postfeedback_response(sentence) == 0:
                 self.Student.set_chat_status("quiz_greeting")
 
-                response.text = "Welcome back to quiz mode:  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz"
+                response.text = "Welcome back to the quiz menu. Here you can select a quiz for you to do::  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz by entering the number in the brackets, or type quit to exit quiz menu. "
             #  TODO: QUIT 
             else:
                 response.text = "That is not a valid response, please enter try again."+ "  \n  \n currently:" + self.Student.chatStatus

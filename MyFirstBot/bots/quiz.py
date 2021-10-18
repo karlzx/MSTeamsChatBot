@@ -9,6 +9,7 @@ import urllib.request
 import base64
 from spellchecker import SpellChecker
 from nltk_utils import tokenize
+from datetime import datetime
 from botbuilder.schema import (
     ChannelAccount,
     HeroCard,
@@ -33,12 +34,15 @@ class Student():
         self.sentence_in = ''
         self.sentence_corrected = ''
         self.isMispelled = False
+        self.MCQFeedback = ""
+        self.JustificationFeedback = ""
 
     def __read_data(self):
         self.notDoneArray = self.QuizRead.update_student_summary(self.quizPrefix,self.studentNumber)
 
 
     def has_spelling_errors(self,sentence):
+        original = sentence
         sentence = sentence.lower()
         print("Input: " + sentence)
         sentence_array = tokenize(sentence)
@@ -52,6 +56,13 @@ class Student():
                 sentence = sentence.replace(word, self.spell.correction(word))
             
             self.sentence_corrected = sentence
+
+            csvpath = './Resources/Data_Students/' + 'mispellings.csv'
+            with open(csvpath, 'a', newline='') as csv_studentwrite:
+                    csv_swriter = csv.writer(csv_studentwrite)
+                    line_overwrite = [datetime.now(), self.studentNumber, self.chatStatus, original]
+                    csv_swriter.writerow(line_overwrite)
+
         else:
             self.sentence_corrected = self.sentence_in 
         
@@ -67,7 +78,7 @@ class Student():
         ndResponse = ""
 
         for i in range(0,len(self.notDoneArray)):
-            ndResponse += self.notDoneArray[i][0] +" "+ self.notDoneArray[i][1]  + ": Remaining - " +self.notDoneArray[i][2] +"  \n"
+            ndResponse += "({:.0f}) ".format(i+1) +  self.notDoneArray[i][0] +" "+ self.notDoneArray[i][1]  + ": Remaining - " +self.notDoneArray[i][2] +"  \n"
         
         if len(ndResponse) == 0:
             ndResponse = "You have completed all assigned quizzes"
@@ -103,16 +114,28 @@ class Student():
 
     def is_valid_justification_response(self,sentence):
         #TODO GREATER RESPONSE
-
+        self.original_justfication = sentence
+        self.new_justification = self.original_justfication
         if self.has_spelling_errors(sentence):
             valid = -2
         elif len(sentence)>0:
-            self.temp_MCQJustifications = sentence
             valid = 1
         else:
             valid = 0
         print("VALID VALUE: "+str(valid))
         return valid
+    
+    def is_valid_spelling_response(self,sentence):
+
+        if sentence.lower() == "yes":
+            self.new_justification = self.sentence_corrected
+            return 1
+        elif sentence.lower() == "change":
+            return 0
+        elif sentence.lower() == "keep":
+            return -2
+        else:
+            return -1
 
     def is_valid_postfeedback_response(self,sentence):
     #TODO GREATER RESPONSE
@@ -133,8 +156,22 @@ class Student():
             return -1
 
     def get_feedback(self):
-        textresponse = self.QuestionSet.check_response_and_get_feedback(self.temp_MCQresponse,self.temp_MCQJustifications) 
-        textresponse += "  \n" + "do you want to do another quiz or finish?" + "  \n  \n currently:" + self.chatStatus
+        textresponse,self.MCQFeedback,self.JustificationFeedback = self.QuestionSet.check_response_and_get_feedback(self.temp_MCQresponse,self.new_justification) 
+        textresponse 
+
+        if self.MCQFeedback == "Incorrect":
+            textresponse += "  \n  \n The correct answer is: " + self.QuestionSet.currQuestionAnswer
+        if self.MCQFeedback == "Incorrect" or (self.JustificationFeedback != "Correct" and self.QuestionSet.pickleExist):           
+            textresponse += "  \n  \nAs your answer is not fully correct, please look at this resource to improve your understanding:  \n https://www.youtube.com/watch?v=hewTwm5P0Gg&ab_channel=ZachStar"
+
+        textresponse += "  \n  \nYou have " + str(self.QuestionSet.remainingQuestions) + " Questions remaining." 
+
+        if self.QuestionSet.remainingQuestions > 0:
+            textresponse += "  \n  \n" + "Enter 'again' to do another question, or type 'finish' to go back to the quiz menu." 
+
+        else: 
+            textresponse += "Type 'finish' to go back to the quiz menu." 
+        
         return textresponse
 
     def save_progression(self):
@@ -166,25 +203,23 @@ class Student():
             self.MCQfeedback = ""
             self.justificationfeedback =""
             self.pickleName = "NA"
+            self.pickleExist = False
             self.currQuestionAnswer = ""
             self.currQuestionPicturePath = ""
             self.currQuestionOptions = ['N/A']*4
             self.quizSuffix = ".csv"
 
         def check_response_and_get_feedback(self, MCQresponse, MCQjustification):
-            MCQpass = MCQresponse.lower() == self.currQuestionAnswer.lower()
-            self.MCQfeedback = "Correct" if MCQpass else  "Incorrect"
+            self.MCQpass = MCQresponse.lower() == self.currQuestionAnswer.lower()
+            self.MCQfeedback = "Correct" if self.MCQpass else  "Incorrect"
             response = "Your MCQ Question was: " + self.MCQfeedback
             print("TEST: PICKLE EXIST")
-            # print("./Resources/"+self.pickleName + "vocab.pickle")
-            # print(os.path.isfile("./Resources/"+self.pickleName + "vocab.pickle"))
-            # print(os.path.isfile("./Resources/"+self.pickleName + "model.pickle"))
-            if os.path.isfile("./Resources/Data_Models/"+self.pickleName + "vocab.pickle") and os.path.isfile("./Resources/Data_Models/"+self.pickleName + "model.pickle"):
+            if self.pickleExist:
                 self.justificationfeedback = predModel(MCQjustification, self.pickleName)
                 response += "  \n" + "And your justification feedback is predicted as: " + self.justificationfeedback
             else: 
                 self.justificationfeedback = "Not Found"
-            return response
+            return response,self.MCQfeedback, self.justificationfeedback
 
             # TODO: UPDATE SAVE RESPONSE
 
@@ -225,6 +260,7 @@ class Student():
             self.totalQuestions = len(self.QArray)
             self.remainingQuestions = self.totalQuestions - (i+1)
             self.pickleName = str.strip(self.QArray[i][8])
+            self.pickleExist = os.path.isfile("./Resources/Data_Models/"+self.pickleName + "vocab.pickle") and os.path.isfile("./Resources/Data_Models/"+self.pickleName + "model.pickle")
             for j in range(0,self.MaxMCQOptions):
                 self.currQuestionOptions[j] = self.QArray[i][2+j]
             # for j in range(0,len(self.QArray[i])):

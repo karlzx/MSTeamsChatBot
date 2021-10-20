@@ -1,1 +1,1 @@
-start cmd.exe /k "C:\Users\karls\OneDrive\Documents\GitHub\edu-env\Scripts\Activate.bat"
+start cmd.exe /k "C:\Users\karls\Documents\GitHub\edu-env\Scripts\Activate.bat"

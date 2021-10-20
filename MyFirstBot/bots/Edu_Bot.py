@@ -135,8 +135,14 @@ class EduBot(ActivityHandler):
         elif  self.Student.is_chat_status("QuizQuestioning"):
             # send details when you get into quiz as an await.
             if self.Student.is_valid_quiz_response(sentence): 
-                self.Student.set_chat_status("QuizJustifying")
-                response.text = "Please Justify Your Answer" 
+                if self.Student.has_justification_model():
+                    self.Student.set_chat_status("QuizJustifying")
+                    response.text = "Please Justify Your Answer" 
+                else:
+                    self.Student.set_chat_status("QuizConfirming")
+                    self.Student.is_valid_justification_response("NA")
+                    response.text = "Do you confirm? or would you like to change your answer?  \n  \nReply 'Yes' to submit answer, or 'No' to change your answer." 
+
             #  TODO: QUIT 
             else:
                 response.text = "That is not a valid response, please enter try again."

@@ -189,6 +189,9 @@ class Student():
         self.QuestionSet.update_Question()
         return self.QuestionSet.get_question()
 
+    def has_justification_model(self):
+        return self.QuestionSet.pickleExist
+
     class QuestionSet():
         def __init__(self):
             self.questionSetName = ""

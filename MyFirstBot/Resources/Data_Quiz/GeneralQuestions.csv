@@ -1,4 +1,4 @@
 ﻿Question,Image,A ,B,C,D,Points ,Correct Answer,Justification
-Which of the python code finds the length of the array?,,arrlen,length,lengthofarray,len,10,B,
+Which of the python code finds the length of the array?,,arrlen,length,lengthofarray,len,10,C,
 What is the correct equation of a slope,,y=mx+c,a=b+c,a^2+b^2=c,y=1/x,10,A,
-Who is this person?,,Person A,Person B,Person C,Person D,5,D,
+What is the integral of 1/x w.r.t. x?,,sin(x),cos(x),tan(x),ln(x),5,D,

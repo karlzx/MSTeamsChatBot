@@ -148,7 +148,7 @@ class Student():
 
     def is_valid_confirm_response(self,sentence):
         
-        if sentence.lower() == "yes":
+        if sentence.lower() == "yes" or sentence.lower() == "confirm":
             return 1
         elif sentence.lower() == "no":
             return 0

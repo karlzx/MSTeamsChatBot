@@ -68,7 +68,7 @@ class EduBot(ActivityHandler):
                     if self.MLmodel.is_user_intent("quiz"):
                         self.Student.set_chat_status("quiz_greeting")
 
-                        response.text = "Welcome to the quiz menu. Here you can select a quiz for you to do:  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz by entering the number in the brackets, or type quit to exit the quiz menu. "
+                        response.text = "Welcome to the quiz menu. Here you can select a quiz for you to do:  \n  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz by entering the number in the brackets, or type quit to exit the quiz menu. "
                     
                     elif self.MLmodel.is_user_intent("quizdetails"):
 
@@ -110,7 +110,7 @@ class EduBot(ActivityHandler):
                 quizName = self.Student.get_student_quiz(int(sentence))
 
                 if quizName == -1:
-                    response.text = f"That is not a valid response, pick again" + "  \n  \n currently:" + self.Student.chatStatus
+                    response.text = f"That is not a valid response, pick again" 
 
                 else: 
                     # self.Student.get_student_question()
@@ -123,7 +123,7 @@ class EduBot(ActivityHandler):
                     self.Student.set_chat_status("QuizQuestioning") #CHANGE THIS TO quizQuestioning WHEN WORKING
 
             else:
-                response.text = f"I do not understand...." + "  \n  \n currently:" + self.Student.chatStatus
+                response.text = f"I do not understand...." 
 
         ##############################################
         # STATE : QUIZ QUESTIONING
@@ -136,10 +136,10 @@ class EduBot(ActivityHandler):
             # send details when you get into quiz as an await.
             if self.Student.is_valid_quiz_response(sentence): 
                 self.Student.set_chat_status("QuizJustifying")
-                response.text = "Please Justify Your Answer" + "  \n  \n currently:" + self.Student.chatStatus
+                response.text = "Please Justify Your Answer" 
             #  TODO: QUIT 
             else:
-                response.text = "That is not a valid response, please enter try again." + "  \n  \n currently:" + self.Student.chatStatus
+                response.text = "That is not a valid response, please enter try again."
 
         
         ##############################################
@@ -153,6 +153,7 @@ class EduBot(ActivityHandler):
             if self.Student.is_valid_justification_response(sentence) == -2: #Wrong Spelling
                 response.text = "Did you mean: "+ self.Student.sentence_corrected + "?  \n  \n Reply 'Yes' to accept the corrected spelling, 'Change' to modify your answer, or 'Keep' to submit your original answer." 
                 self.Student.set_chat_status("QuizSpelling")
+
             elif self.Student.is_valid_justification_response(sentence) == 1:
                 self.Student.set_chat_status("QuizConfirming")
                 response.text = "Do you confirm? or would you like to change your answer?  \n  \nReply 'Yes' to submit answer, or 'No' to change your answer."   
@@ -216,7 +217,7 @@ class EduBot(ActivityHandler):
             
             elif self.Student.is_valid_postfeedback_response(sentence) == 1:
                 
-                response.text = "Here is your next question:" + self.Student.get_next_question() + "  \n Please enter your option ('A', 'B', 'C', ...)"
+                response.text = "Here is your next question:  \n" + self.Student.get_next_question() + "  \n Please enter your option ('A', 'B', 'C', ...)"
 
                 picture = self.Student.get_question_picture()
                 if picture != -1:
@@ -230,7 +231,7 @@ class EduBot(ActivityHandler):
                 response.text = "Welcome back to the quiz menu. Here you can select a quiz for you to do::  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz by entering the number in the brackets, or type quit to exit quiz menu. "
             #  TODO: QUIT 
             else:
-                response.text = "That is not a valid response, please enter try again."+ "  \n  \n currently:" + self.Student.chatStatus
+                response.text = "That is not a valid response, please enter try again."
 
                 
         return await turn_context.send_activity(response)

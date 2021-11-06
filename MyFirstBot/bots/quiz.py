@@ -213,12 +213,15 @@ class Student():
             self.quizSuffix = ".csv"
 
         def check_response_and_get_feedback(self, MCQresponse, MCQjustification):
-            self.MCQpass = MCQresponse.lower() == self.currQuestionAnswer.lower()
+            
+            self.currStudentMCQResponse = MCQresponse
+            self.currStudentJustification = MCQjustification
+            self.MCQpass = self.currStudentMCQResponse.lower() == self.currQuestionAnswer.lower()
             self.MCQfeedback = "Correct" if self.MCQpass else  "Incorrect"
             response = "Your MCQ Question was: " + self.MCQfeedback
             print("TEST: PICKLE EXIST")
             if self.pickleExist:
-                self.justificationfeedback = predModel(MCQjustification, self.pickleName)
+                self.justificationfeedback = predModel(self.currStudentJustification, self.pickleName)
                 response += "  \n" + "And your justification feedback is predicted as: " + self.justificationfeedback
             else: 
                 self.justificationfeedback = "Not Found"
@@ -226,9 +229,6 @@ class Student():
 
             # TODO: UPDATE SAVE RESPONSE
 
-        def update_student_response(self,mcqresponse,mcqjustification):
-            self.currStudentJustification = mcqresponse
-            self.currStudentMCQResponse = mcqjustification
 
         def open_quiz_set(self,setName,currentQind):
             
@@ -309,8 +309,7 @@ class Student():
                 newCompleted = int(foundRow[1]) +1
                 newScore = int(foundRow[2]) + int(self.currQuestionPoints)
                 newFeedback = str(foundRow[3]) + " Q"+str(newCompleted)+": "\
-                    +"MCQ: " + self.MCQfeedback +", SAR: " + \
-                        self.justificationfeedback +"."
+                    +f"MCQ(answer/feedback): ({self.currStudentMCQResponse}/{self.MCQfeedback}) " + f", SAR(answer/feedback): ({self.currStudentJustification}/{self.justificationfeedback})."                        +"."
                 # line_overwrite = {i:[self.questionSetName,newCompleted ,newScore, newFeedback]}
             line_overwrite = [self.questionSetName,newCompleted ,newScore, newFeedback]
             # else: TODO: APPEND 

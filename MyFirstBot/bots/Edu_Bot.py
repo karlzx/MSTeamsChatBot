@@ -53,7 +53,7 @@ class EduBot(ActivityHandler):
 
         print(f"Current state {self.Student.chatStatus}")
 
-        print(f"User said {sentence}. gathered: intent {self.MLmodel.tag} with probability {self.MLmodel.prob.item()}")
+        print(f"User said: \"{sentence}\". gathered intent: \"{self.MLmodel.tag}\" with probability {self.MLmodel.prob.item()}")
         response = Activity(type=ActivityTypes.message)
         
         ##############################################
@@ -66,7 +66,7 @@ class EduBot(ActivityHandler):
             if not self.Student.has_spelling_errors(sentence):
                 if self.MLmodel.intent_detected():
                     if self.MLmodel.is_user_intent("quiz"):
-                        self.Student.set_chat_status("quiz_greeting")
+                        self.Student.set_chat_status("QuizGreeting")
 
                         response.text = "Welcome to the quiz menu. Here you can select a quiz for you to do:  \n  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz by entering the number in the brackets, or type quit to exit the quiz menu. "
                     
@@ -96,7 +96,7 @@ class EduBot(ActivityHandler):
         # DESC :
         # User is given their available quizzes, and can select to do their desired quiz
         ##############################################
-        elif self.Student.is_chat_status("quiz_greeting"):
+        elif self.Student.is_chat_status("QuizGreeting"):
             if self.MLmodel.intent_detected():
                 if self.MLmodel.is_user_intent("quit"):
                     self.Student.set_chat_status("greeting")
@@ -232,7 +232,7 @@ class EduBot(ActivityHandler):
                 self.Student.set_chat_status("QuizQuestioning")
                 
             elif self.Student.is_valid_postfeedback_response(sentence) == 0:
-                self.Student.set_chat_status("quiz_greeting")
+                self.Student.set_chat_status("QuizGreeting")
 
                 response.text = "Welcome back to the quiz menu. Here you can select a quiz for you to do::  \n" +self.Student.get_student_summary() + "  \n" + " Select a quiz by entering the number in the brackets, or type quit to exit quiz menu. "
             #  TODO: QUIT 

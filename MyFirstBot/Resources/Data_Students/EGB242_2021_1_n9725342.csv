@@ -1,4 +1,4 @@
 Quiz,Completed_Q,Score,Feedback
-EGB242_2021_1_Set1,3,25," Q1: MCQ: Correct, SAR: Incorrect. Q2: MCQ: Incorrect, SAR: Not Found. Q3: MCQ: Incorrect, SAR: Not Found."
-Picture_Worded_Questions,1,10," Q1: MCQ: Incorrect, SAR: Not Found."
-GeneralQuestions,3,25," Q1: MCQ: Incorrect, SAR: Not Found. Q2: MCQ: Correct, SAR: Not Found. Q3: MCQ: Correct, SAR: Not Found."
+EGB242_2021_1_Set1,1,10," Q1: MCQ(answer/feedback): (A/Correct) , SAR(answer/feedback): (Frequency is inverse of period/Correct).."
+Picture_Worded_Questions,2,20," Q1: MCQ(answer/feedback): (C/Correct) , SAR(answer/feedback): (NA/Not Found).. Q2: MCQ(answer/feedback): (B/Correct) , SAR(answer/feedback): (NA/Not Found).."
+GeneralQuestions,0,0,
